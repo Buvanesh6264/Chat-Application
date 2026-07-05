@@ -14,6 +14,4 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
-chat-app-build-prompt.md
-*.claude
-*claude
+.claude/scheduled_tasks.lock
