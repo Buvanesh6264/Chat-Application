@@ -1,0 +1,16 @@
+{
+  "name": "chat-app",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n BACKEND,FRONTEND -c blue,green \"npm:dev -w backend\" \"npm:dev -w frontend\"",
+    "lint": "npm run lint -w backend && npm run lint -w frontend",
+    "test": "npm test -w backend && npm test -w frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
