@@ -12,6 +12,7 @@ import chatsRoutes from './routes/chats.routes.js';
 import messagesRoutes from './routes/messages.routes.js';
 import storiesRoutes from './routes/stories.routes.js';
 import aiRoutes from './routes/ai.routes.js';
+import mediaRoutes from './routes/media.routes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 export const createApp = () => {
@@ -38,6 +39,7 @@ export const createApp = () => {
   app.use('/api/messages', messagesRoutes);
   app.use('/api/stories', storiesRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/media', mediaRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
