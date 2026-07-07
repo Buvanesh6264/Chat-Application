@@ -5,7 +5,7 @@ import StoryRail from '../components/stories/StoryRail.jsx';
 // atop ChatListPage.
 export default function StoriesPage() {
   return (
-    <div className="flex h-full flex-col bg-neutral-50">
+    <div className="animate-fade-in-up flex h-full flex-col bg-neutral-50">
       <h1 className="px-4 pt-4 text-lg font-semibold text-neutral-900">Stories</h1>
       <StoryRail />
     </div>

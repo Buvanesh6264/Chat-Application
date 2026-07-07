@@ -42,12 +42,15 @@ export const useChatStore = create((set) => ({
       },
     })),
 
+  // Only called from the message:receive socket listener, never from setMessages/prependMessages
+  // (REST history loads) — the __live marker lets MessageBubble animate genuinely live-arriving
+  // messages without replaying an entrance animation for a bulk history/pagination mount.
   addMessage: (chatId, message) =>
     set((state) => {
       const list = state.messagesByChatId[chatId] || [];
       if (list.some((m) => m.id === message.id)) return {}; // already have it (pagination/socket overlap)
       return {
-        messagesByChatId: { ...state.messagesByChatId, [chatId]: [...list, message] },
+        messagesByChatId: { ...state.messagesByChatId, [chatId]: [...list, { ...message, __live: true }] },
       };
     }),
 

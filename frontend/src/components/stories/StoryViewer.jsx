@@ -72,14 +72,16 @@ export default function StoryViewer({ userId, onClose }) {
       <div className="flex gap-1 p-2">
         {group.map((story, i) => (
           <div key={story.id} className="h-1 flex-1 overflow-hidden rounded-full bg-white/30">
-            <div className={`h-1 rounded-full bg-white ${i <= index ? 'w-full' : 'w-0'}`} />
+            <div
+              className={`h-1 rounded-full bg-white transition-[width] duration-300 ease-linear ${i <= index ? 'w-full' : 'w-0'}`}
+            />
           </div>
         ))}
       </div>
 
       <div className="flex items-center justify-between px-3 pb-2 text-white">
         <span className="text-sm font-medium">{authorName}</span>
-        <button type="button" onClick={onClose} aria-label="Close">
+        <button type="button" onClick={onClose} aria-label="Close" className="icon-btn">
           <X className="h-6 w-6" />
         </button>
       </div>
@@ -91,11 +93,13 @@ export default function StoryViewer({ userId, onClose }) {
           aria-label="Previous story"
           className="absolute inset-y-0 left-0 w-1/2"
         />
-        <img
-          src={current.mediaUrl}
-          alt={current.caption || 'Story'}
-          className="max-h-full max-w-full object-contain"
-        />
+        <div key={current.id} className="animate-fade-in flex h-full w-full items-center justify-center">
+          <img
+            src={current.mediaUrl}
+            alt={current.caption || 'Story'}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
         <button
           type="button"
           onClick={goNext}

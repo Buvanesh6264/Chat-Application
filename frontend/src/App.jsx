@@ -6,7 +6,10 @@ import { router } from './router.jsx';
 export default function App() {
   return (
     <AuthProvider>
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        toastOptions={{ duration: 3000, style: { borderRadius: '8px' } }}
+      />
       <RouterProvider router={router} />
     </AuthProvider>
   );

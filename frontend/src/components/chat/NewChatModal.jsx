@@ -75,20 +75,25 @@ export default function NewChatModal() {
         {!searching && phone.trim() && results.length === 0 && (
           <div className="py-3 text-center text-sm text-neutral-500">No users found</div>
         )}
-        {results.map((user) => (
-          <button
+        {results.map((user, i) => (
+          <div
             key={user.id}
-            type="button"
-            onClick={() => handleSelect(user)}
-            disabled={creatingId === user.id}
-            className="flex w-full items-center gap-3 px-2 py-2 text-left hover:bg-neutral-50 disabled:opacity-50"
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
           >
-            <Avatar src={user.profileImageUrl} name={user.name} size="sm" />
-            <div>
-              <div className="text-sm font-medium text-neutral-900">{user.name}</div>
-              <div className="text-xs text-neutral-500">{user.phoneNumber}</div>
-            </div>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleSelect(user)}
+              disabled={creatingId === user.id}
+              className="flex w-full items-center gap-3 px-2 py-2 text-left transition-colors duration-150 hover:bg-neutral-50 disabled:opacity-50"
+            >
+              <Avatar src={user.profileImageUrl} name={user.name} size="sm" />
+              <div>
+                <div className="text-sm font-medium text-neutral-900">{user.name}</div>
+                <div className="text-xs text-neutral-500">{user.phoneNumber}</div>
+              </div>
+            </button>
+          </div>
         ))}
       </div>
     </Modal>

@@ -13,6 +13,11 @@ export default function FriendRequestsPanel() {
   // Tracks both which request and which action are in flight, so Accept/Reject don't
   // both show a spinner when only one was clicked.
   const [responding, setResponding] = useState({ id: null, action: null });
+  // Populated only after the network call already succeeded, to play a row's exit animation
+  // before it's actually removed from `requests` (separate step from `responding`). A Set, not a
+  // single id — accepting/rejecting two rows within the same 150ms window must animate both out
+  // independently rather than one clobbering the other.
+  const [removingIds, setRemovingIds] = useState(() => new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +40,15 @@ export default function FriendRequestsPanel() {
     setResponding({ id: requestId, action });
     try {
       await respondFriendRequest(requestId, action);
-      setRequests((prev) => prev.filter((r) => r._id !== requestId));
+      setRemovingIds((prev) => new Set(prev).add(requestId));
+      setTimeout(() => {
+        setRequests((prev) => prev.filter((r) => r._id !== requestId));
+        setRemovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(requestId);
+          return next;
+        });
+      }, 150);
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Failed to respond to request');
     } finally {
@@ -54,8 +67,20 @@ export default function FriendRequestsPanel() {
       )}
 
       <ul className="flex flex-col gap-3">
-        {requests.map((request) => (
-          <li key={request._id} className="flex items-center gap-3">
+        {requests.map((request, i) => (
+          <li
+            key={request._id}
+            className={`flex items-center gap-3 ${
+              removingIds.has(request._id)
+                ? 'animate-fade-out-down pointer-events-none'
+                : 'animate-fade-in-up'
+            }`}
+            style={
+              removingIds.has(request._id)
+                ? undefined
+                : { animationDelay: `${Math.min(i, 8) * 40}ms` }
+            }
+          >
             <Avatar
               size="md"
               src={request.from?.profileImageUrl}

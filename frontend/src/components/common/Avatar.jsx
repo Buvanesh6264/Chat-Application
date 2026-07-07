@@ -27,21 +27,25 @@ export default function Avatar({ src, name, size = 'md', online, hasUnviewedStor
   const sizeClasses = SIZE_CLASSES[size];
 
   // Three distinct ring states: undefined (no stories) -> no ring, false (all viewed) -> dim ring,
-  // true (unviewed) -> colored ring.
+  // true (unviewed) -> colored ring + a slow pulse to draw the eye, matching the Telegram-style
+  // "unviewed story" convention.
   let ringClasses = '';
   if (hasUnviewedStory === true) {
-    ringClasses = 'ring-2 ring-primary-500 ring-offset-2';
+    ringClasses = 'ring-2 ring-primary-500 ring-offset-2 animate-pulse-ring';
   } else if (hasUnviewedStory === false) {
     ringClasses = 'ring-2 ring-neutral-200 ring-offset-2';
   }
 
   const Wrapper = onClick ? 'button' : 'div';
+  // Only interactive avatars get a hover affordance — a purely-decorative avatar shouldn't hint
+  // clickability it doesn't have.
+  const interactiveClasses = onClick ? 'transition-transform duration-150 hover:scale-105' : '';
 
   return (
     <Wrapper
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={`relative inline-flex shrink-0 rounded-full ${ringClasses}`}
+      className={`relative inline-flex shrink-0 rounded-full ${ringClasses} ${interactiveClasses}`}
     >
       {src ? (
         <img

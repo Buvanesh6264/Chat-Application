@@ -9,7 +9,7 @@ export default function ProfileView() {
   if (!user) return null;
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-6">
+    <section className="animate-fade-in-up rounded-lg border border-neutral-200 bg-white p-6">
       <div className="flex items-center gap-4">
         <Avatar size="xl" src={user.profileImageUrl} name={user.name} />
         <div>

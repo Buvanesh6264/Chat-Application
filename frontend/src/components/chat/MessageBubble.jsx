@@ -23,6 +23,9 @@ export default function MessageBubble({ message, isOwn }) {
   const [reactOpen, setReactOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content || '');
+  const [wasLive] = useState(() => message.__live);
+
+  const entranceClass = wasLive ? (isOwn ? 'animate-slide-in-right' : 'animate-slide-in-left') : '';
 
   const deleted = Boolean(message.deletedAt);
   const canEditDelete = isOwn && !deleted && withinEditWindow(message);
@@ -98,7 +101,7 @@ export default function MessageBubble({ message, isOwn }) {
   };
 
   return (
-    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} px-4 py-1`}>
+    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} px-4 py-1 ${entranceClass}`}>
       <div className={`group relative max-w-xs rounded-lg px-3 py-2 ${isOwn ? 'bg-accent-100' : 'bg-neutral-50'}`}>
         {editing ? (
           <form onSubmit={handleEditSubmit} className="flex items-center gap-2">
@@ -122,7 +125,7 @@ export default function MessageBubble({ message, isOwn }) {
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          className="absolute -top-2 right-1 hidden rounded-full bg-white p-0.5 shadow group-hover:block"
+          className="icon-btn absolute -top-2 right-1 hidden rounded-full bg-white p-0.5 shadow group-hover:block"
           aria-label="Message actions"
         >
           <MoreVertical className="h-4 w-4 text-neutral-500" />
@@ -165,7 +168,7 @@ export default function MessageBubble({ message, isOwn }) {
                     key={emoji}
                     type="button"
                     onClick={() => handleReact(emoji)}
-                    className="text-lg hover:scale-110"
+                    className="text-lg hover:scale-125 transition-transform"
                   >
                     {emoji}
                   </button>

@@ -180,8 +180,8 @@ export default function MessageComposer({ chatId }) {
       {recording ? (
         <div className="flex items-center gap-3">
           <span className="text-sm text-danger">Recording… {recordSeconds}s</span>
-          <button type="button" onClick={stopRecording} aria-label="Stop recording">
-            <Square className="h-5 w-5 text-danger" />
+          <button type="button" onClick={stopRecording} aria-label="Stop recording" className="icon-btn">
+            <Square className="h-5 w-5 animate-pulse text-danger" />
           </button>
         </div>
       ) : (
@@ -191,6 +191,7 @@ export default function MessageComposer({ chatId }) {
               type="button"
               onClick={() => setShowAttach((v) => !v)}
               aria-label="Attach"
+              className="icon-btn"
             >
               <Paperclip className="h-5 w-5 text-neutral-500" />
             </button>
@@ -236,7 +237,7 @@ export default function MessageComposer({ chatId }) {
           </div>
 
           <div className="relative">
-            <button type="button" onClick={() => setShowEmoji((v) => !v)} aria-label="Emoji">
+            <button type="button" onClick={() => setShowEmoji((v) => !v)} aria-label="Emoji" className="icon-btn">
               <Smile className="h-5 w-5 text-neutral-500" />
             </button>
             {showEmoji && (
@@ -253,7 +254,7 @@ export default function MessageComposer({ chatId }) {
             className="flex-1 rounded-full border border-neutral-200 px-4 py-2 text-sm focus:outline-none"
           />
 
-          <button type="submit" disabled={!text.trim() || sending} aria-label="Send">
+          <button type="submit" disabled={!text.trim() || sending} aria-label="Send" className="icon-btn">
             <Send className="h-5 w-5 text-primary-500" />
           </button>
         </form>

@@ -31,7 +31,7 @@ export default function ChatListItem({ chat }) {
     <button
       type="button"
       onClick={() => navigate(`/chats/${chat.id}`)}
-      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-neutral-50"
+      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-neutral-50"
     >
       <Avatar src={avatarSrc} name={name} size="md" />
       <div className="min-w-0 flex-1">
@@ -47,7 +47,7 @@ export default function ChatListItem({ chat }) {
           <span className="truncate text-sm text-neutral-500">
             {chat.lastMessage ? mediaPreview(chat.lastMessage) : ''}
           </span>
-          {unread && <span className="ml-2 h-2.5 w-2.5 shrink-0 rounded-full bg-unread" />}
+          {unread && <span className="ml-2 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-unread" />}
         </div>
       </div>
     </button>

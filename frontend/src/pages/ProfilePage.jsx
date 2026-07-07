@@ -85,11 +85,15 @@ function ChatContactsPanel() {
       )}
 
       <ul className="flex flex-col gap-3">
-        {contacts.map((participant) => {
+        {contacts.map((participant, i) => {
           const id = participantId(participant);
           const blocked = blockedIds.has(id);
           return (
-            <li key={id} className="flex items-center gap-3">
+            <li
+              key={id}
+              className="flex animate-fade-in-up items-center gap-3"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+            >
               <Avatar size="md" src={participant.profileImageUrl} name={participant.name} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-neutral-900">{participant.name}</p>
@@ -113,7 +117,7 @@ function ChatContactsPanel() {
 
 export default function ProfilePage() {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
+    <div className="mx-auto flex max-w-2xl animate-fade-in-up flex-col gap-6 p-6">
       <ProfileView />
       <PrivacySettingsForm />
       <FriendRequestsPanel />

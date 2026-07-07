@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import Modal from '../common/Modal.jsx';
 import Button from '../common/Button.jsx';
 import { useUiStore } from '../../store/uiStore.js';
@@ -16,21 +17,21 @@ export default function StoryComposer() {
   const [file, setFile] = useState(null);
   const [caption, setCaption] = useState('');
   const [posting, setPosting] = useState(false);
-  const [error, setError] = useState('');
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
-  // Modal's own backdrop-click/X close bypasses any local handler, so the form is reset whenever
-  // the modal transitions closed (not just on our own Cancel/Post button) to avoid stale
-  // file/caption state showing up next time it's reopened. Setters are inlined (not a `reset`
-  // helper) so exhaustive-deps doesn't ask for a dep that would refire this every render and wipe
-  // the caption as the user types.
+  // Reset on the transition *into* open, not on close — resetting on close blanks the preview/
+  // caption the instant the modal starts its exit animation, so the user watches stale content
+  // vanish mid-close instead of the intact form fading/scaling out. wasOpen tracks the previous
+  // render's isOpen so this only fires on a genuine closed->open transition (fresh state each time
+  // it's reopened), not on every render while open or while it's closing.
+  const wasOpen = useRef(isOpen);
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen && !wasOpen.current) {
       setFile(null);
       setCaption('');
-      setError('');
     }
+    wasOpen.current = isOpen;
   }, [isOpen]);
 
   const handleClose = () => {
@@ -40,7 +41,6 @@ export default function StoryComposer() {
   const handlePost = async () => {
     if (!file) return;
     setPosting(true);
-    setError('');
     try {
       // Compress before requesting the upload URL — the presigned PUT's signature is bound to the
       // exact mimeType requested, and compression can change the effective mime type.
@@ -55,7 +55,7 @@ export default function StoryComposer() {
       useStoryStore.getState().addStory(story);
       handleClose();
     } catch {
-      setError('Failed to post story. Please try again.');
+      toast.error('Failed to post story. Please try again.');
     } finally {
       setPosting(false);
     }
@@ -72,7 +72,11 @@ export default function StoryComposer() {
         />
 
         {previewUrl && (
-          <img src={previewUrl} alt="Story preview" className="max-h-64 w-full rounded-md object-cover" />
+          <img
+            src={previewUrl}
+            alt="Story preview"
+            className="animate-scale-in max-h-64 w-full rounded-md object-cover"
+          />
         )}
 
         <input
@@ -82,8 +86,6 @@ export default function StoryComposer() {
           placeholder="Add a caption (optional)"
           className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
         />
-
-        {error && <p className="text-xs text-danger">{error}</p>}
 
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={handleClose}>

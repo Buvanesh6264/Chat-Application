@@ -10,8 +10,14 @@ export default function ChatList() {
 
   return (
     <div className="divide-y divide-neutral-200">
-      {chats.map((chat) => (
-        <ChatListItem key={chat.id} chat={chat} />
+      {chats.map((chat, i) => (
+        <div
+          key={chat.id}
+          className="animate-fade-in-up"
+          style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+        >
+          <ChatListItem chat={chat} />
+        </div>
       ))}
     </div>
   );

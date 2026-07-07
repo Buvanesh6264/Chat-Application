@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { searchUsers, sendFriendRequest } from '../../services/api.js';
 import Avatar from '../common/Avatar.jsx';
 import Button from '../common/Button.jsx';
@@ -52,6 +53,7 @@ export default function UserSearch() {
     } catch (err) {
       const message = err.response?.data?.error?.message || 'Failed to send request';
       setRowState((prev) => ({ ...prev, [userId]: { status: 'error', message } }));
+      toast.error(message);
     }
   };
 
@@ -74,10 +76,14 @@ export default function UserSearch() {
       )}
 
       <ul className="mt-3 flex flex-col gap-3">
-        {results.map((result) => {
+        {results.map((result, i) => {
           const state = rowState[result.id] || { status: 'idle' };
           return (
-            <li key={result.id} className="flex items-center gap-3">
+            <li
+              key={result.id}
+              className="flex animate-fade-in-up items-center gap-3"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+            >
               <Avatar size="md" src={result.profileImageUrl} name={result.name} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-neutral-900">{result.name}</p>

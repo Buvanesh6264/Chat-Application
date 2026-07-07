@@ -69,7 +69,7 @@ export default function StoryRail() {
             type="button"
             onClick={() => useUiStore.getState().openModal('storyComposer')}
             aria-label="Add story"
-            className="absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-500 text-white ring-2 ring-white"
+            className="icon-btn absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-500 text-white ring-2 ring-white"
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -77,12 +77,16 @@ export default function StoryRail() {
         <span className="max-w-16 truncate text-xs text-neutral-500">Your story</span>
       </div>
 
-      {otherUserIds.map((userId) => {
+      {otherUserIds.map((userId, i) => {
         const group = storiesByUserId[userId];
         const hasUnviewed = group.some((s) => !s.viewedByMe);
         const profile = profiles[userId];
         return (
-          <div key={userId} className="flex flex-col items-center gap-1">
+          <div
+            key={userId}
+            className="animate-fade-in-up flex flex-col items-center gap-1"
+            style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+          >
             <Avatar
               src={profile?.profileImageUrl}
               name={profile?.name}
