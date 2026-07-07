@@ -22,7 +22,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Shared by the 401-retry interceptor below and refreshSession() (called from AuthProvider's
+// mount-effect) — the refresh cookie is single-use (backend rotates refreshTokenHash on every
+// call), so two concurrent /auth/refresh requests would have the second one rejected as "revoked"
+// even though the session is fine. Deduping through one in-flight promise avoids that race,
+// notably under React 19 StrictMode's dev-only double-invoked mount effects.
 let refreshPromise = null;
+
+const performRefresh = () => {
+  refreshPromise ??= api.post('/auth/refresh').finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+};
 
 api.interceptors.response.use(
   (response) => response,
@@ -31,10 +43,7 @@ api.interceptors.response.use(
     if (response?.status === 401 && !config._retried) {
       config._retried = true;
       try {
-        refreshPromise ??= api.post('/auth/refresh').finally(() => {
-          refreshPromise = null;
-        });
-        const { data } = await refreshPromise;
+        const { data } = await performRefresh();
         setAccessToken(data.accessToken);
         config.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(config);
@@ -59,4 +68,88 @@ export const login = async (phoneNumber, password) => {
 
 export const logout = async () => {
   await api.post('/auth/logout');
+};
+
+export const refreshSession = async () => {
+  const { data } = await performRefresh();
+  return data;
+};
+
+export const getChats = async () => {
+  const { data } = await api.get('/chats');
+  return data.chats;
+};
+
+export const getMessages = async (chatId, { cursor, limit } = {}) => {
+  const { data } = await api.get(`/chats/${chatId}/messages`, { params: { cursor, limit } });
+  return data;
+};
+
+export const createDirectChat = async (userId) => {
+  const { data } = await api.post('/chats/direct', { userId });
+  return data.chat;
+};
+
+export const createGroupChat = async (groupName, participantIds) => {
+  const { data } = await api.post('/chats/group', { groupName, participantIds });
+  return data.chat;
+};
+
+export const searchUsers = async (phone) => {
+  const { data } = await api.get('/users/search', { params: { phone } });
+  return data.users;
+};
+
+export const getUserProfile = async (userId) => {
+  const { data } = await api.get(`/users/${userId}/profile`);
+  return data.user;
+};
+
+export const updatePrivacy = async (settings) => {
+  const { data } = await api.patch('/users/me/privacy', settings);
+  return data.privacySettings;
+};
+
+export const getFriendRequests = async () => {
+  const { data } = await api.get('/friends/requests');
+  return data.requests;
+};
+
+export const sendFriendRequest = async (to) => {
+  const { data } = await api.post('/friends/request', { to });
+  return data.request;
+};
+
+export const respondFriendRequest = async (requestId, action) => {
+  const { data } = await api.post('/friends/respond', { requestId, action });
+  return data.request;
+};
+
+export const blockUser = async (userId) => {
+  await api.post('/friends/block', { userId });
+};
+
+export const getUploadUrl = async (category, mimeType) => {
+  const { data } = await api.post('/media/upload-url', { category, mimeType });
+  return data;
+};
+
+export const editTranscript = async (messageId, transcript) => {
+  const { data } = await api.patch(`/messages/${messageId}/transcript`, { transcript });
+  return data.message;
+};
+
+export const getStoriesFeed = async () => {
+  const { data } = await api.get('/stories/feed');
+  return data.stories;
+};
+
+export const postStory = async (objectKey, caption) => {
+  const { data } = await api.post('/stories', { objectKey, caption });
+  return data.story;
+};
+
+export const viewStory = async (storyId) => {
+  const { data } = await api.post(`/stories/${storyId}/view`);
+  return data.story;
 };
