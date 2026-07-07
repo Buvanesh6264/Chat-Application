@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate.js';
 import {
   createMessage,
   editMessage,
+  editMessageTranscript,
   deleteMessage,
   TEXT_MESSAGE_TYPES,
   ALL_MESSAGE_TYPES,
@@ -41,6 +42,14 @@ router.patch(
   [param('id').isMongoId(), body('content').isString().trim().notEmpty()],
   validate,
   editMessage
+);
+
+router.patch(
+  '/:id/transcript',
+  authenticate,
+  [param('id').isMongoId(), body('transcript').isString().trim().notEmpty()],
+  validate,
+  editMessageTranscript
 );
 
 router.delete('/:id', authenticate, [param('id').isMongoId()], validate, deleteMessage);

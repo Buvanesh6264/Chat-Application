@@ -8,9 +8,17 @@ vi.mock('../src/services/storage.js', () => ({
   createDownloadUrl: vi.fn(),
   createUploadUrl: vi.fn(),
 }));
+// sendMessage fire-and-forgets a transcription attempt on every voice send (services/messages.js)
+// — mocked so a voice-message test here doesn't fire a real outbound fetch to Groq.
+vi.mock('../src/services/groq.js', () => ({
+  transcribeAudio: vi.fn(),
+  translateText: vi.fn(),
+}));
 
 // eslint-disable-next-line import/order
 import { headObject, createDownloadUrl } from '../src/services/storage.js';
+// eslint-disable-next-line import/order
+import { transcribeAudio } from '../src/services/groq.js';
 import { createApp } from '../src/app.js';
 
 const app = createApp();
@@ -40,6 +48,7 @@ beforeEach(() => {
   vi.mocked(headObject).mockReset();
   vi.mocked(createDownloadUrl).mockReset();
   vi.mocked(createDownloadUrl).mockResolvedValue('https://fake-presigned-url.example/object');
+  vi.mocked(transcribeAudio).mockReset().mockResolvedValue('mocked transcript');
 });
 
 describe('media messages', () => {

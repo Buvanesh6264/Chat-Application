@@ -20,6 +20,7 @@ export const serializeMessage = async (message) => {
     mediaMeta: message.mediaMeta,
     transcript: deleted ? null : message.transcript,
     transcriptEdited: message.transcriptEdited,
+    translatedContent: deleted ? [] : message.translatedContent,
     reactions: message.reactions,
     readBy: message.readBy,
     editedAt: message.editedAt,
