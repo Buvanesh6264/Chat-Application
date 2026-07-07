@@ -33,12 +33,16 @@ Note: the frontend only ever holds the Supabase **anon/public** key. The service
 
 ## Design conventions
 
-Placeholder until a dedicated design pass — document real values here once chosen:
+Design tokens live in `src/styles/index.css`'s `@theme` block (no `tailwind.config.js` — Tailwind v4 is CSS-first, so all tokens/breakpoints/custom variants are added there).
 
+- **Brand gradient**: `--gradient-primary` (indigo `#4F46E5` → violet `#9333EA` → magenta `#EC4899`), consumed via the `bg-gradient-primary` `@utility` (a gradient can't ride a plain Tailwind color utility). Used for primary CTAs (`Button variant="gradient"`), the online-presence ring on `Avatar`, unread badges.
+- **Surface/text tokens**: `--color-surface`/`--color-elevated`/`--color-ink`/`--color-ink-muted` — named this way (not the spec's literal `bg-surface`/`text-primary`) so Tailwind generates non-redundant utilities (`bg-surface`, `text-ink`) instead of `text-text-primary`. `--color-dark` is the dark-mode surface value.
+- **Dark mode**: manual toggle, not OS-preference-driven — `@custom-variant dark (&:where(.dark, .dark *));` in `index.css` makes `dark:` class-based. `store/uiStore.js` holds `theme`/`setTheme`/`toggleTheme` (persisted to `localStorage`), and `App.jsx` toggles the `dark` class on `<html>` in an effect. New/touched components should pair light/dark explicitly (e.g. `bg-white dark:bg-elevated`); untouched legacy screens may still be light-only until they're next touched — not a regression, an intentional incremental rollout.
+- **Fonts**: `--font-display` (Sora/Poppins — headings, logo wordmark, used sparingly) and `--font-sans` (Inter — everything else, set as the `body` default), loaded via a Google Fonts `<link>` in `index.html`.
 - **Spacing scale**: 4 / 8 / 12 / 16 / 24 / 32 px.
-- **Color tokens**: primary / secondary / surface / error / success (hex values TBD).
-- **Icon set**: TBD (e.g. `lucide-react`).
-- **Story ring / avatar pattern**: Telegram-style ring around avatars with unviewed stories.
+- **Icon set**: `lucide-react`.
+- **Signature element**: an animated gradient ring (`animate-ring-glow`) around a user's `Avatar` when `online` is true, at `md`/`lg`/`xl` sizes — distinct from the small `bg-online` dot (kept at `size="sm"`) and from the separate story-ring (`hasUnviewedStory`, Telegram-style, used by `StoryRail`). All three are additive, not mutually exclusive.
+- **Motion**: hand-rolled `@utility` keyframes in `index.css` (no `framer-motion`) — `fade-in(-up)`, `scale-in`, `slide-in-right/left`, `blob-drift` (auth background), `shake` (input error), `ring-glow` (avatar). All automatically respect `prefers-reduced-motion` via the existing global override.
 
 ## Routing
 

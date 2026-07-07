@@ -31,7 +31,12 @@ export default function ChatHeader({ chat }) {
 
   return (
     <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
-      <button type="button" onClick={() => navigate('/chats')} aria-label="Back" className="icon-btn">
+      <button
+        type="button"
+        onClick={() => navigate('/chats')}
+        aria-label="Back"
+        className="icon-btn lg:hidden"
+      >
         <ArrowLeft className="h-5 w-5 text-neutral-900" />
       </button>
       <Avatar src={avatarSrc} name={name} size="md" online={chat.isGroup ? undefined : presence?.isOnline} />

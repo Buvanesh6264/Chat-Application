@@ -2,8 +2,9 @@ import Spinner from './Spinner.jsx';
 
 const VARIANT_CLASSES = {
   primary: 'bg-primary-500 hover:bg-primary-600 text-white',
-  secondary: 'bg-neutral-200 hover:bg-gray-300 text-neutral-900',
-  ghost: 'bg-transparent text-neutral-900 hover:bg-neutral-50',
+  gradient: 'bg-gradient-primary text-white hover:brightness-110',
+  secondary: 'bg-neutral-200 hover:bg-gray-300 text-neutral-900 dark:bg-elevated dark:text-ink dark:hover:brightness-110',
+  ghost: 'bg-transparent text-neutral-900 hover:bg-neutral-50 dark:text-ink dark:hover:bg-elevated',
   danger: 'bg-danger hover:opacity-90 text-white',
 };
 

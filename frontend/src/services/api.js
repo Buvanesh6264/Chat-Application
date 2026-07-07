@@ -107,7 +107,22 @@ export const getUserProfile = async (userId) => {
 
 export const updatePrivacy = async (settings) => {
   const { data } = await api.patch('/users/me/privacy', settings);
-  return data.privacySettings;
+  return data;
+};
+
+export const updateProfile = async (updates) => {
+  const { data } = await api.patch('/users/me/profile', updates);
+  return data.user;
+};
+
+export const pinChat = async (chatId) => {
+  const { data } = await api.patch(`/chats/${chatId}/pin`);
+  return data.pinnedChats;
+};
+
+export const unpinChat = async (chatId) => {
+  const { data } = await api.delete(`/chats/${chatId}/pin`);
+  return data.pinnedChats;
 };
 
 export const getFriendRequests = async () => {

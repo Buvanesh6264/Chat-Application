@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth.js';
 import { getChats, blockUser } from '../services/api.js';
 import ProfileView from '../components/profile/ProfileView.jsx';
-import PrivacySettingsForm from '../components/profile/PrivacySettingsForm.jsx';
 import FriendRequestsPanel from '../components/profile/FriendRequestsPanel.jsx';
 import UserSearch from '../components/profile/UserSearch.jsx';
 import Avatar from '../components/common/Avatar.jsx';
@@ -119,7 +118,6 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto flex max-w-2xl animate-fade-in-up flex-col gap-6 p-6">
       <ProfileView />
-      <PrivacySettingsForm />
       <FriendRequestsPanel />
       <UserSearch />
       <ChatContactsPanel />

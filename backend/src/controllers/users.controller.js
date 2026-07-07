@@ -2,6 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/User.js';
 import { isBlockedPair, canViewField } from '../services/privacy.js';
+import { createDownloadUrl } from '../services/storage.js';
+import { validateMediaUpload } from '../services/mediaValidation.js';
 
 const SEARCH_RESULT_LIMIT = 20;
 
@@ -63,7 +65,10 @@ export const getProfile = asyncHandler(async (req, res) => {
       id: target._id,
       name: canViewProfile ? target.name : null,
       phoneNumber: canViewProfile ? target.phoneNumber : null,
-      profileImageUrl: canViewProfile ? target.profileImageUrl : null,
+      profileImageUrl:
+        canViewProfile && target.profileImageUrl
+          ? await createDownloadUrl(target.profileImageUrl)
+          : null,
       bio: canViewProfile ? target.bio : null,
       lastSeenAt: canViewLastSeen ? target.lastSeenAt : null,
       isOnline: canViewOnlineStatus ? target.isOnline : null,
@@ -72,13 +77,42 @@ export const getProfile = asyncHandler(async (req, res) => {
 });
 
 export const updatePrivacy = asyncHandler(async (req, res) => {
-  const { profileVisibility, lastSeenVisibility, onlineStatusVisibility } = req.body;
+  const { profileVisibility, lastSeenVisibility, onlineStatusVisibility, readReceiptsEnabled } = req.body;
 
   const update = {};
   if (profileVisibility) update['privacySettings.profileVisibility'] = profileVisibility;
   if (lastSeenVisibility) update['privacySettings.lastSeenVisibility'] = lastSeenVisibility;
   if (onlineStatusVisibility) update['privacySettings.onlineStatusVisibility'] = onlineStatusVisibility;
+  if (typeof readReceiptsEnabled === 'boolean') update.readReceiptsEnabled = readReceiptsEnabled;
 
   const user = await User.findByIdAndUpdate(req.user.id, { $set: update }, { returnDocument: 'after' });
-  res.json({ privacySettings: user.privacySettings });
+  res.json({ privacySettings: user.privacySettings, readReceiptsEnabled: user.readReceiptsEnabled });
+});
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { name, bio, profileImageUrl } = req.body;
+
+  const update = {};
+  if (name !== undefined) update.name = name;
+  if (bio !== undefined) update.bio = bio;
+  if (profileImageUrl !== undefined) {
+    // profileImageUrl is a client-uploaded objectKey (see POST /media/upload-url), never a
+    // client-supplied URL — re-verify it actually belongs to this user and matches the photo
+    // allowlist before persisting a reference to it, same discipline as message/story media.
+    if (profileImageUrl) {
+      await validateMediaUpload(req.user.id, 'photo', profileImageUrl);
+    }
+    update.profileImageUrl = profileImageUrl;
+  }
+
+  const user = await User.findByIdAndUpdate(req.user.id, { $set: update }, { returnDocument: 'after' });
+  res.json({
+    user: {
+      id: user._id,
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+      profileImageUrl: user.profileImageUrl ? await createDownloadUrl(user.profileImageUrl) : null,
+      bio: user.bio,
+    },
+  });
 });

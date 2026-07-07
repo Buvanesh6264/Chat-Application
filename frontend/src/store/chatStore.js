@@ -11,8 +11,23 @@ export const useChatStore = create((set) => ({
   messagesByChatId: {},
   typingByChatId: {},
   presenceByUserId: {},
+  pinnedChatIds: new Set(),
 
   setChats: (chats) => set({ chats: chats.map((c) => ({ ...c, id: c.id ?? c._id })) }),
+
+  // Hydrated once from the logged-in user's `pinnedChats` (login/signup response or cached user),
+  // then kept in sync locally by pinChat/unpinChat below on top of the server round-trip.
+  setPinnedChatIds: (ids) => set({ pinnedChatIds: new Set((ids || []).map(String)) }),
+
+  addPinnedChatId: (chatId) =>
+    set((state) => ({ pinnedChatIds: new Set(state.pinnedChatIds).add(String(chatId)) })),
+
+  removePinnedChatId: (chatId) =>
+    set((state) => {
+      const next = new Set(state.pinnedChatIds);
+      next.delete(String(chatId));
+      return { pinnedChatIds: next };
+    }),
 
   // Reorders the chat list on a new message: bump the matching chat to the front with its
   // lastMessage/updatedAt updated. Leaves state untouched if the chat isn't loaded yet — that

@@ -8,6 +8,8 @@ import {
   createGroupChat,
   addMember,
   removeMember,
+  pinChat,
+  unpinChat,
 } from '../controllers/chats.controller.js';
 import { listMessages } from '../controllers/messages.controller.js';
 
@@ -52,5 +54,9 @@ router.get(
   validate,
   listMessages
 );
+
+router.patch('/:id/pin', authenticate, [param('id').isMongoId()], validate, pinChat);
+
+router.delete('/:id/pin', authenticate, [param('id').isMongoId()], validate, unpinChat);
 
 export default router;

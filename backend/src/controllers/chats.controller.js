@@ -78,6 +78,29 @@ export const createGroupChat = asyncHandler(async (req, res) => {
   res.status(201).json({ chat });
 });
 
+export const pinChat = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.id, participants: req.user.id });
+  if (!chat) {
+    throw new ApiError(404, 'Chat not found');
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $addToSet: { pinnedChats: chat._id } },
+    { returnDocument: 'after' }
+  );
+  res.json({ pinnedChats: user.pinnedChats });
+});
+
+export const unpinChat = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $pull: { pinnedChats: req.params.id } },
+    { returnDocument: 'after' }
+  );
+  res.json({ pinnedChats: user.pinnedChats });
+});
+
 export const addMember = asyncHandler(async (req, res) => {
   const { userId } = req.body;
   const chat = await Chat.findById(req.params.id);

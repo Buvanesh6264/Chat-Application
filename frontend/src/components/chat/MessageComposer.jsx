@@ -3,8 +3,8 @@ import EmojiPicker from 'emoji-picker-react';
 import { Send, Paperclip, Smile, Mic, Square, Image as ImageIcon, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getSocket } from '../../services/socket.js';
-import { getUploadUrl } from '../../services/api.js';
 import { compressImage } from '../../services/imageCompression.js';
+import { uploadObject } from '../../services/uploadHelpers.js';
 
 const TYPING_IDLE_MS = 2000;
 
@@ -12,16 +12,6 @@ const MAX_SIZES = {
   photo: 10 * 1024 * 1024,
   voice: 25 * 1024 * 1024,
   pdf: 20 * 1024 * 1024,
-};
-
-const uploadObject = async (category, blob) => {
-  const { uploadUrl, objectKey } = await getUploadUrl(category, blob.type);
-  await fetch(uploadUrl, {
-    method: 'PUT',
-    body: blob,
-    headers: { 'Content-Type': blob.type },
-  });
-  return objectKey;
 };
 
 export default function MessageComposer({ chatId }) {

@@ -29,6 +29,7 @@ User {
   lastSeenAt: Date, isOnline: Boolean,
   friends: [ObjectId ref User],
   blockedUsers: [ObjectId ref User],
+  pinnedChats: [ObjectId ref Chat],
   createdAt, updatedAt
 }
 
@@ -79,7 +80,14 @@ POST   /auth/logout
 
 GET    /users/search?phone=
 GET    /users/:id/profile        (per-field privacy gated; 404 only on an actual block, never on a restrictive enum)
-PATCH  /users/me/privacy
+PATCH  /users/me/privacy          { profileVisibility?, lastSeenVisibility?, onlineStatusVisibility?, readReceiptsEnabled? }
+PATCH  /users/me/profile          { name?, bio?, profileImageUrl? } -- self-profile edit; profileImageUrl is an
+                                   objectKey already uploaded via POST /media/upload-url (category 'photo'), not a
+                                   file itself; re-verified via services/mediaValidation.js#validateMediaUpload
+                                   before persisting, same as message/story media. Response's profileImageUrl (and
+                                   every other profileImageUrl this API returns — GET /users/:id/profile, login/
+                                   signup's toPublicUser) is a freshly resolved presigned GET URL, not the raw
+                                   objectKey — the bucket is private, so the stored value alone isn't fetchable.
 
 POST   /friends/request           { to }
 POST   /friends/respond           { requestId, action: 'accept'|'reject' }
@@ -92,6 +100,8 @@ POST   /chats/group               { groupName, participantIds }
 POST   /chats/:id/members         { userId } -- group only, admin-only
 DELETE /chats/:id/members/:userId -- group only, admin-only to remove others, self-removal (leave) always allowed
 GET    /chats/:id/messages?cursor=&limit=  -- cursor is the previous page's last message _id, descending
+PATCH  /chats/:id/pin             -- pin a chat for the caller only (User.pinnedChats), 404 if caller isn't a participant
+DELETE /chats/:id/pin             -- unpin; no-op (not an error) if it wasn't pinned
 
 POST   /messages                  { chatId, type: 'text'|'emoji', content }
                                    { chatId, type: 'photo'|'voice'|'pdf', objectKey, content? (caption), durationSeconds? (voice) }

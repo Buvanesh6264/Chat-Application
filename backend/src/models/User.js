@@ -20,6 +20,7 @@ const userSchema = new Schema(
     isOnline: { type: Boolean, default: false },
     friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     blockedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    pinnedChats: [{ type: Schema.Types.ObjectId, ref: 'Chat' }],
   },
   { timestamps: true }
 );

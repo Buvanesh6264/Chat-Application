@@ -37,12 +37,12 @@ export default function Modal({ id, title, children }) {
       onClick={close}
     >
       <div
-        className={`mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl ${closing ? 'animate-scale-out' : 'animate-scale-in'}`}
+        className={`mx-4 w-full max-w-md rounded-lg bg-elevated p-6 shadow-xl ${closing ? 'animate-scale-out' : 'animate-scale-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-neutral-900">{title}</h2>
+            <h2 className="text-lg font-medium text-ink">{title}</h2>
             <button type="button" onClick={close} aria-label="Close" className="icon-btn">
               <X className="h-5 w-5 text-neutral-500" />
             </button>

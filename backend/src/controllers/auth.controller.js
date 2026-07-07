@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { createDownloadUrl } from '../services/storage.js';
 import {
   signAccessToken,
   signRefreshToken,
@@ -13,14 +14,18 @@ import {
 
 const PASSWORD_MIN_LENGTH = 8;
 
-const toPublicUser = (user) => ({
+// profileImageUrl is stored as a private-bucket objectKey (see users.controller.js#updateProfile)
+// — resolve it to a short-lived signed GET URL here, same as serializeMessage does for message
+// media, rather than handing back an unusable raw key.
+const toPublicUser = async (user) => ({
   id: user._id,
   name: user.name,
   phoneNumber: user.phoneNumber,
-  profileImageUrl: user.profileImageUrl,
+  profileImageUrl: user.profileImageUrl ? await createDownloadUrl(user.profileImageUrl) : null,
   bio: user.bio,
   privacySettings: user.privacySettings,
   readReceiptsEnabled: user.readReceiptsEnabled,
+  pinnedChats: user.pinnedChats,
 });
 
 const issueTokens = async (res, user) => {
@@ -48,7 +53,7 @@ export const signup = asyncHandler(async (req, res) => {
   const user = await User.create({ name, phoneNumber, passwordHash });
 
   const accessToken = await issueTokens(res, user);
-  res.status(201).json({ user: toPublicUser(user), accessToken });
+  res.status(201).json({ user: await toPublicUser(user), accessToken });
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -65,7 +70,7 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   const accessToken = await issueTokens(res, user);
-  res.json({ user: toPublicUser(user), accessToken });
+  res.json({ user: await toPublicUser(user), accessToken });
 });
 
 export const refresh = asyncHandler(async (req, res) => {

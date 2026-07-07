@@ -41,29 +41,50 @@ export default function Avatar({ src, name, size = 'md', online, hasUnviewedStor
   // clickability it doesn't have.
   const interactiveClasses = onClick ? 'transition-transform duration-150 hover:scale-105' : '';
 
+  // Signature brand moment: an animated gradient ring for online presence, distinct from the
+  // story-unviewed ring above. Only shown at sizes with room to read as a ring rather than
+  // noise — 'sm' keeps the plain dot instead (see below).
+  const showGradientRing = online === true && size !== 'sm';
+
   return (
     <Wrapper
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={`relative inline-flex shrink-0 rounded-full ${ringClasses} ${interactiveClasses}`}
     >
-      {src ? (
-        <img
-          src={src}
-          alt={name || 'Avatar'}
-          className={`${sizeClasses} rounded-full object-cover`}
-        />
-      ) : (
-        <span
-          className={`${sizeClasses} flex items-center justify-center rounded-full bg-neutral-200 font-medium text-neutral-900`}
-        >
-          {getInitials(name)}
-        </span>
+      {showGradientRing && (
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute -inset-[3px] rounded-full bg-gradient-primary animate-ring-glow"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -inset-[1px] rounded-full bg-surface dark:bg-elevated"
+          />
+        </>
       )}
 
-      {/* online === null/undefined means "unknown" and must not render a dot at all;
-          only explicit true/false render the online/offline dot. */}
-      {online === true && (
+      <span className="relative">
+        {src ? (
+          <img
+            src={src}
+            alt={name || 'Avatar'}
+            className={`${sizeClasses} rounded-full object-cover`}
+          />
+        ) : (
+          <span
+            className={`${sizeClasses} flex items-center justify-center rounded-full bg-neutral-200 font-medium text-neutral-900`}
+          >
+            {getInitials(name)}
+          </span>
+        )}
+      </span>
+
+      {/* online === null/undefined means "unknown" and must not render a dot at all; only
+          explicit true/false render a dot. Online true only gets a dot at 'sm' — larger sizes
+          use the gradient ring above instead, so the two indicators never double up. */}
+      {online === true && size === 'sm' && (
         <span
           className={`absolute right-0 bottom-0 ${DOT_SIZE_CLASSES[size]} rounded-full bg-online ring-2 ring-white`}
         />

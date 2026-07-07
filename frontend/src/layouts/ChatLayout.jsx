@@ -1,0 +1,128 @@
+import { useEffect, useState } from 'react';
+import { Outlet, useMatch, Link } from 'react-router-dom';
+import { Plus, User, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import Avatar from '../components/common/Avatar.jsx';
+import Button from '../components/common/Button.jsx';
+import ChatList from '../components/chat/ChatList.jsx';
+import ChatSearchBar from '../components/chat/ChatSearchBar.jsx';
+import NewChatModal from '../components/chat/NewChatModal.jsx';
+import StoryRail from '../components/stories/StoryRail.jsx';
+import { useChatStore } from '../store/chatStore.js';
+import { useUiStore } from '../store/uiStore.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
+import { getChats } from '../services/api.js';
+
+// Persistent header menu (avatar -> Profile / Settings / theme / Logout) — the one place, always
+// visible regardless of route, that satisfies "logout reachable from a header/profile menu, not
+// buried only in settings" (spec section 7). Lives here rather than a separate component since
+// it's a single call site tightly coupled to this header row.
+function AccountMenu() {
+  const { user } = useAuth();
+  const theme = useUiStore((s) => s.theme);
+  const toggleTheme = useUiStore((s) => s.toggleTheme);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Account menu">
+        <Avatar src={user?.profileImageUrl} name={user?.name} size="sm" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-10 left-0 z-20 w-48 rounded-md border border-neutral-200 bg-elevated py-1 text-sm shadow-lg animate-scale-in">
+            <Link
+              to="/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-ink hover:bg-neutral-50 dark:hover:bg-surface"
+            >
+              <User className="h-4 w-4" /> Profile
+            </Link>
+            <Link
+              to="/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-ink hover:bg-neutral-50 dark:hover:bg-surface"
+            >
+              <Settings className="h-4 w-4" /> Settings
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                toggleTheme();
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-ink hover:bg-neutral-50 dark:hover:bg-surface"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                useUiStore.getState().openModal('logout-confirm');
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-danger hover:bg-neutral-50 dark:hover:bg-surface"
+            >
+              <LogOut className="h-4 w-4" /> Log out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Single source of truth for the list+detail split (spec section 3): one route match derives
+// `chatOpen`, and that one boolean drives which pane shows on mobile. Desktop (lg:) always shows
+// both panes regardless of chatOpen — only the mobile stacked behavior branches on it.
+export default function ChatLayout() {
+  const chatOpen = !!useMatch('/chats/:chatId');
+  const { user } = useAuth();
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 250);
+
+  useEffect(() => {
+    getChats().then((chats) => useChatStore.getState().setChats(chats));
+  }, []);
+
+  useEffect(() => {
+    useChatStore.getState().setPinnedChatIds(user?.pinnedChats);
+  }, [user?.pinnedChats]);
+
+  return (
+    <div className="flex h-screen bg-surface">
+      <div
+        className={`w-full flex-col border-neutral-200 lg:flex lg:w-[340px] lg:shrink-0 lg:border-r ${
+          chatOpen ? 'hidden' : 'flex'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <AccountMenu />
+            <h1 className="font-display text-lg font-semibold text-ink">Chats</h1>
+          </div>
+          <Button size="sm" variant="gradient" onClick={() => useUiStore.getState().openModal('new-chat')}>
+            <Plus className="h-4 w-4" />
+            New Chat
+          </Button>
+        </div>
+
+        <StoryRail />
+        <ChatSearchBar value={query} onChange={setQuery} />
+
+        <div className="flex-1 overflow-y-auto">
+          <ChatList query={debouncedQuery} />
+        </div>
+
+        <NewChatModal />
+      </div>
+
+      <div className={`w-full flex-1 flex-col lg:flex ${chatOpen ? 'flex' : 'hidden'}`}>
+        <Outlet />
+      </div>
+    </div>
+  );
+}
