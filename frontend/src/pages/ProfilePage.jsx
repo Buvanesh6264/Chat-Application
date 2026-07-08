@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft } from 'lucide-react';
-import { getFriends, blockUser } from '../services/api.js';
+import { getFriends, blockUser, removeFriend } from '../services/api.js';
 import ProfileView from '../components/profile/ProfileView.jsx';
 import FriendRequestsPanel from '../components/profile/FriendRequestsPanel.jsx';
+import SentRequestsPanel from '../components/profile/SentRequestsPanel.jsx';
 import UserSearch from '../components/profile/UserSearch.jsx';
 import Avatar from '../components/common/Avatar.jsx';
 import Button from '../components/common/Button.jsx';
@@ -36,7 +37,13 @@ function useFriends() {
 
 function FriendsPanel() {
   const { friends, loading } = useFriends();
+  const [list, setList] = useState(null);
   const [blockedIds, setBlockedIds] = useState(new Set());
+  const [removingId, setRemovingId] = useState(null);
+
+  // `friends` from the hook is the source of truth on first load; after a local removal we
+  // switch to `list` so the row disappears immediately without waiting for a refetch.
+  const rows = list ?? friends;
 
   // Blocking is one-directional and permanent from this UI (no unblock endpoint exists),
   // so we require an explicit confirmation before firing it.
@@ -53,18 +60,34 @@ function FriendsPanel() {
     }
   };
 
+  const handleRemove = async (friend) => {
+    const confirmed = window.confirm(`Remove ${friend.name} from your friends?`);
+    if (!confirmed) return;
+
+    setRemovingId(friend.id);
+    try {
+      await removeFriend(friend.id);
+      setList(rows.filter((f) => f.id !== friend.id));
+      toast.success(`${friend.name} removed`);
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Failed to remove friend');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   return (
     <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:bg-elevated">
       <h3 className="mb-4 text-base font-semibold text-neutral-900 dark:text-ink">Friends</h3>
 
       {loading && <Spinner size="sm" />}
 
-      {!loading && friends.length === 0 && (
+      {!loading && rows.length === 0 && (
         <p className="text-sm text-neutral-500 dark:text-ink-muted">No friends yet</p>
       )}
 
       <ul className="flex flex-col gap-3">
-        {friends.map((friend, i) => {
+        {rows.map((friend, i) => {
           const blocked = blockedIds.has(friend.id);
           return (
             <li
@@ -77,6 +100,15 @@ function FriendsPanel() {
                 <p className="text-sm font-medium text-neutral-900 dark:text-ink">{friend.name}</p>
                 <p className="text-xs text-neutral-500 dark:text-ink-muted">{friend.phoneNumber}</p>
               </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={removingId === friend.id}
+                loading={removingId === friend.id}
+                onClick={() => handleRemove(friend)}
+              >
+                Remove
+              </Button>
               <Button size="sm" variant="danger" disabled={blocked} onClick={() => handleBlock(friend)}>
                 {blocked ? 'Blocked' : 'Block'}
               </Button>
@@ -100,7 +132,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl animate-fade-in-up flex-col gap-6 p-6">
+    <div className="mx-auto flex min-h-full max-w-2xl animate-fade-in-up flex-col gap-6 bg-panel-detail p-6">
       <div className="flex items-center gap-3">
         <button type="button" onClick={handleBack} aria-label="Back" className="icon-btn">
           <ArrowLeft className="h-5 w-5 text-ink" />
@@ -109,6 +141,7 @@ export default function ProfilePage() {
       </div>
       <ProfileView />
       <FriendRequestsPanel />
+      <SentRequestsPanel />
       <UserSearch />
       <FriendsPanel />
     </div>

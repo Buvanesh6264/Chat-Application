@@ -10,6 +10,9 @@ import {
   removeMember,
   pinChat,
   unpinChat,
+  updateGroupChat,
+  promoteAdmin,
+  demoteAdmin,
 } from '../controllers/chats.controller.js';
 import { listMessages } from '../controllers/messages.controller.js';
 
@@ -45,6 +48,34 @@ router.delete(
   [param('id').isMongoId(), param('userId').isMongoId()],
   validate,
   removeMember
+);
+
+router.patch(
+  '/group/:id',
+  authenticate,
+  [
+    param('id').isMongoId(),
+    body('groupName').optional().isString().trim().notEmpty(),
+    body('groupAvatarUrl').optional().isString(),
+  ],
+  validate,
+  updateGroupChat
+);
+
+router.post(
+  '/group/:id/admins/:userId',
+  authenticate,
+  [param('id').isMongoId(), param('userId').isMongoId()],
+  validate,
+  promoteAdmin
+);
+
+router.delete(
+  '/group/:id/admins/:userId',
+  authenticate,
+  [param('id').isMongoId(), param('userId').isMongoId()],
+  validate,
+  demoteAdmin
 );
 
 router.get(

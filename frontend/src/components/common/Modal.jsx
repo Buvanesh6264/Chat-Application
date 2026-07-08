@@ -6,7 +6,7 @@ import { useUiStore } from '../../store/uiStore.js';
 // exit transition before actually unmounting, instead of vanishing mid-animation.
 const EXIT_DURATION_MS = 120;
 
-export default function Modal({ id, title, children }) {
+export default function Modal({ id, title, children, panelClassName = 'bg-elevated' }) {
   const isActive = useUiStore((s) => s.activeModal === id);
   const [rendered, setRendered] = useState(isActive);
   const [closing, setClosing] = useState(false);
@@ -37,7 +37,7 @@ export default function Modal({ id, title, children }) {
       onClick={close}
     >
       <div
-        className={`mx-4 w-full max-w-md rounded-lg bg-elevated p-6 shadow-xl ${closing ? 'animate-scale-out' : 'animate-scale-in'}`}
+        className={`mx-4 w-full max-w-md rounded-lg ${panelClassName} p-6 shadow-xl ${closing ? 'animate-scale-out' : 'animate-scale-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (

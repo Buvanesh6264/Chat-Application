@@ -99,6 +99,19 @@ export const addChatMember = async (chatId, userId) => {
   await api.post(`/chats/${chatId}/members`, { userId });
 };
 
+export const updateGroupChat = async (chatId, updates) => {
+  const { data } = await api.patch(`/chats/group/${chatId}`, updates);
+  return data.chat;
+};
+
+export const promoteGroupAdmin = async (chatId, userId) => {
+  await api.post(`/chats/group/${chatId}/admins/${userId}`);
+};
+
+export const demoteGroupAdmin = async (chatId, userId) => {
+  await api.delete(`/chats/group/${chatId}/admins/${userId}`);
+};
+
 export const searchUsers = async (phone) => {
   const { data } = await api.get('/users/search', { params: { phone } });
   return data.users;
@@ -151,6 +164,19 @@ export const respondFriendRequest = async (requestId, action) => {
 
 export const blockUser = async (userId) => {
   await api.post('/friends/block', { userId });
+};
+
+export const getSentFriendRequests = async () => {
+  const { data } = await api.get('/friends/requests/sent');
+  return data.requests;
+};
+
+export const cancelFriendRequest = async (requestId) => {
+  await api.delete(`/friends/requests/${requestId}`);
+};
+
+export const removeFriend = async (friendId) => {
+  await api.delete(`/friends/${friendId}`);
 };
 
 export const getUploadUrl = async (category, mimeType) => {

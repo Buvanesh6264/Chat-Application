@@ -69,7 +69,7 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col animate-slide-in-right lg:animate-none">
+    <div className="flex h-full min-h-0 flex-col bg-panel-chat animate-slide-in-right lg:animate-none">
       <ChatHeader chat={chat} />
       <MessageList chatId={chatId} chat={chat} nextCursor={nextCursor} setNextCursor={setNextCursor} />
       <TypingIndicator chat={chat} typingUserIds={typingUserIds} />

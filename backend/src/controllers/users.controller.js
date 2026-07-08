@@ -1,7 +1,8 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/User.js';
-import { isBlockedPair, canViewField } from '../services/privacy.js';
+import { FriendRequest } from '../models/FriendRequest.js';
+import { isBlockedPair, isFriend, canViewField } from '../services/privacy.js';
 import { createDownloadUrl } from '../services/storage.js';
 import { validateMediaUpload } from '../services/mediaValidation.js';
 
@@ -60,6 +61,20 @@ export const getProfile = asyncHandler(async (req, res) => {
   const canViewLastSeen = canViewField(viewer, target, 'lastSeen');
   const canViewOnlineStatus = canViewField(viewer, target, 'onlineStatus');
 
+  // relationship must never be gated by profileVisibility — a non-friend contact (e.g. from
+  // phone search) can have name/photo hidden while still needing a working "Send Friend
+  // Request" button, so this is computed independently of the fields above.
+  let relationship = 'none';
+  if (viewer._id.equals(target._id)) {
+    relationship = 'self';
+  } else if (isFriend(viewer, target._id)) {
+    relationship = 'friends';
+  } else if (await FriendRequest.findOne({ from: viewer._id, to: target._id, status: 'pending' })) {
+    relationship = 'request_sent';
+  } else if (await FriendRequest.findOne({ from: target._id, to: viewer._id, status: 'pending' })) {
+    relationship = 'request_received';
+  }
+
   res.json({
     user: {
       id: target._id,
@@ -72,6 +87,7 @@ export const getProfile = asyncHandler(async (req, res) => {
       bio: canViewProfile ? target.bio : null,
       lastSeenAt: canViewLastSeen ? target.lastSeenAt : null,
       isOnline: canViewOnlineStatus ? target.isOnline : null,
+      relationship,
     },
   });
 });

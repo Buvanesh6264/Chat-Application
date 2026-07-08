@@ -128,3 +128,51 @@ export const listPendingRequests = asyncHandler(async (req, res) => {
   );
   res.json({ requests });
 });
+
+export const listSentRequests = asyncHandler(async (req, res) => {
+  const requests = await FriendRequest.find({ from: req.user.id, status: 'pending' }).populate(
+    'to',
+    'name phoneNumber profileImageUrl'
+  );
+  res.json({ requests });
+});
+
+export const cancelRequest = asyncHandler(async (req, res) => {
+  const { requestId } = req.params;
+
+  const request = await FriendRequest.findById(requestId);
+  if (!request || request.from.toString() !== req.user.id) {
+    throw new ApiError(404, 'Friend request not found');
+  }
+  if (request.status !== 'pending') {
+    throw new ApiError(409, 'Friend request is no longer pending');
+  }
+
+  await request.deleteOne();
+  res.status(204).send();
+});
+
+export const removeFriend = asyncHandler(async (req, res) => {
+  const { friendId } = req.params;
+
+  const me = await User.findById(req.user.id);
+  if (!me.friends.some((id) => id.equals(friendId))) {
+    throw new ApiError(404, 'Not friends with this user');
+  }
+
+  await Promise.all([
+    User.findByIdAndUpdate(req.user.id, { $pull: { friends: friendId } }),
+    User.findByIdAndUpdate(friendId, { $pull: { friends: req.user.id } }),
+    // Without this cleanup, sendRequest's dedup check (status: pending|accepted) would
+    // permanently block this pair from ever becoming friends again after an unfriend.
+    FriendRequest.deleteMany({
+      status: 'accepted',
+      $or: [
+        { from: req.user.id, to: friendId },
+        { from: friendId, to: req.user.id },
+      ],
+    }),
+  ]);
+
+  res.status(204).send();
+});

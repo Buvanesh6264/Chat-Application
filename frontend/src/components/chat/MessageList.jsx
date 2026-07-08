@@ -6,6 +6,15 @@ import MessageBubble from './MessageBubble.jsx';
 
 const NEAR_BOTTOM_THRESHOLD = 100;
 const NEAR_TOP_THRESHOLD = 100;
+const AVATAR_COLLAPSE_WINDOW_MS = 5 * 60 * 1000;
+
+// Standard chat UX: only the last message in a consecutive same-sender run shows the avatar,
+// so it doesn't repeat on every line. A sender change or a large enough time gap always shows it.
+const shouldShowAvatar = (message, nextMessage) => {
+  if (!nextMessage || nextMessage.senderId !== message.senderId) return true;
+  const gapMs = new Date(nextMessage.createdAt).getTime() - new Date(message.createdAt).getTime();
+  return gapMs > AVATAR_COLLAPSE_WINDOW_MS;
+};
 
 export default function MessageList({ chatId, chat, nextCursor, setNextCursor }) {
   const { user } = useAuth();
@@ -75,8 +84,14 @@ export default function MessageList({ chatId, chat, nextCursor, setNextCursor })
   return (
     <div ref={containerRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto py-2">
       {loadingMore && <div className="py-2 text-center text-xs text-neutral-500 dark:text-ink-muted">Loading…</div>}
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} chat={chat} isOwn={message.senderId === user.id} />
+      {messages.map((message, i) => (
+        <MessageBubble
+          key={message.id}
+          message={message}
+          chat={chat}
+          isOwn={message.senderId === user.id}
+          showAvatar={shouldShowAvatar(message, messages[i + 1])}
+        />
       ))}
     </div>
   );

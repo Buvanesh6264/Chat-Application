@@ -160,7 +160,7 @@ export default function ChatLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-surface lg:grid lg:grid-cols-[minmax(280px,30%)_1fr]">
       <div
-        className={`min-h-0 w-full flex-col border-neutral-200 lg:flex lg:border-r ${chatOpen ? 'hidden' : 'flex'}`}
+        className={`min-h-0 w-full flex-col border-neutral-200 bg-panel-list lg:flex lg:border-r ${chatOpen ? 'hidden' : 'flex'}`}
       >
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
           <div className="flex items-center gap-3">
@@ -181,7 +181,7 @@ export default function ChatLayout() {
         <NewGroupModal />
       </div>
 
-      <div className={`min-h-0 w-full min-w-0 flex-col lg:flex ${chatOpen ? 'flex' : 'hidden'}`}>
+      <div className={`min-h-0 w-full min-w-0 flex-col bg-panel-chat lg:flex ${chatOpen ? 'flex' : 'hidden'}`}>
         <Outlet />
       </div>
     </div>

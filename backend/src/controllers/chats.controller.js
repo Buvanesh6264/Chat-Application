@@ -4,6 +4,8 @@ import { User } from '../models/User.js';
 import { Chat } from '../models/Chat.js';
 import { isBlockedPair, isFriend } from '../services/privacy.js';
 import { serializeMessage } from '../utils/serializeMessage.js';
+import { createDownloadUrl } from '../services/storage.js';
+import { validateMediaUpload } from '../services/mediaValidation.js';
 
 const PARTICIPANT_FIELDS = 'name phoneNumber profileImageUrl';
 
@@ -25,6 +27,9 @@ export const listChats = asyncHandler(async (req, res) => {
         ...rest,
         unreadCount,
         lastMessage: chat.lastMessage ? await serializeMessage(chat.lastMessage) : null,
+        // groupAvatarUrl (like profileImageUrl) is a stored objectKey against a private bucket —
+        // resolve it to a fresh presigned GET on every read, never return the raw key.
+        groupAvatarUrl: chat.groupAvatarUrl ? await createDownloadUrl(chat.groupAvatarUrl) : null,
       };
     })
   );
@@ -128,26 +133,103 @@ export const addMember = asyncHandler(async (req, res) => {
   if (!chat || !chat.isGroup) {
     throw new ApiError(404, 'Group chat not found');
   }
-  // groupAdmins[0] is treated as "the leader" everywhere the product has a notion of one — see
-  // backend/CLAUDE.md's Chat data model note. Only the leader may add members, and only from the
-  // leader's own friends (spec section 2.3), not any participant's.
-  const leaderId = chat.groupAdmins[0];
-  if (!leaderId || leaderId.toString() !== req.user.id) {
-    throw new ApiError(403, 'Only the group leader can add members');
+  // Leader-or-any-admin may add members now (previously leader-only) — see backend/CLAUDE.md's
+  // Chat data model note on groupAdmins[0] being "the leader". The friend check runs against the
+  // *acting* admin's own friends, not the leader's, so each admin can only add their own contacts.
+  const isAdmin = chat.groupAdmins.some((adminId) => adminId.toString() === req.user.id);
+  if (!isAdmin) {
+    throw new ApiError(403, 'Only the group leader or an admin can add members');
   }
 
-  const [leader, target] = await Promise.all([User.findById(leaderId), User.findById(userId)]);
+  const [actingAdmin, target] = await Promise.all([
+    User.findById(req.user.id),
+    User.findById(userId),
+  ]);
   if (!target) {
     throw new ApiError(404, 'User not found');
   }
-  if (isBlockedPair(leader, target)) {
+  if (isBlockedPair(actingAdmin, target)) {
     throw new ApiError(403, 'Cannot add a blocked user to a group');
   }
-  if (!isFriend(leader, target._id)) {
-    throw new ApiError(403, 'New members must be friends of the group leader');
+  if (!isFriend(actingAdmin, target._id)) {
+    throw new ApiError(403, 'New members must be friends of the admin adding them');
   }
 
   await Chat.findByIdAndUpdate(chat._id, { $addToSet: { participants: userId } });
+  res.status(204).send();
+});
+
+export const updateGroupChat = asyncHandler(async (req, res) => {
+  const { groupName, groupAvatarUrl } = req.body;
+  const chat = await Chat.findById(req.params.id);
+  if (!chat || !chat.isGroup) {
+    throw new ApiError(404, 'Group chat not found');
+  }
+
+  const isAdmin = chat.groupAdmins.some((adminId) => adminId.toString() === req.user.id);
+  if (!isAdmin) {
+    throw new ApiError(403, 'Only the group leader or an admin can edit this group');
+  }
+
+  const update = {};
+  if (groupName !== undefined) update.groupName = groupName;
+  if (groupAvatarUrl !== undefined) {
+    if (groupAvatarUrl) {
+      await validateMediaUpload(req.user.id, 'photo', groupAvatarUrl);
+    }
+    update.groupAvatarUrl = groupAvatarUrl;
+  }
+
+  const updated = await Chat.findByIdAndUpdate(chat._id, { $set: update }, { returnDocument: 'after' })
+    .populate('participants', PARTICIPANT_FIELDS);
+
+  res.json({
+    chat: {
+      ...updated.toObject(),
+      groupAvatarUrl: updated.groupAvatarUrl ? await createDownloadUrl(updated.groupAvatarUrl) : null,
+    },
+  });
+});
+
+export const promoteAdmin = asyncHandler(async (req, res) => {
+  const { id, userId } = req.params;
+  const chat = await Chat.findById(id);
+  if (!chat || !chat.isGroup) {
+    throw new ApiError(404, 'Group chat not found');
+  }
+
+  const leaderId = chat.groupAdmins[0];
+  if (!leaderId || leaderId.toString() !== req.user.id) {
+    throw new ApiError(403, 'Only the group leader can promote admins');
+  }
+  if (!chat.participants.some((p) => p.toString() === userId)) {
+    throw new ApiError(400, 'User is not a member of this group');
+  }
+
+  // Append only — never reorder, so groupAdmins[0] always stays the original leader.
+  await Chat.findByIdAndUpdate(id, { $addToSet: { groupAdmins: userId } });
+  res.status(204).send();
+});
+
+export const demoteAdmin = asyncHandler(async (req, res) => {
+  const { id, userId } = req.params;
+  const chat = await Chat.findById(id);
+  if (!chat || !chat.isGroup) {
+    throw new ApiError(404, 'Group chat not found');
+  }
+
+  const leaderId = chat.groupAdmins[0];
+  if (!leaderId || leaderId.toString() !== req.user.id) {
+    throw new ApiError(403, 'Only the group leader can demote admins');
+  }
+  if (leaderId.toString() === userId) {
+    throw new ApiError(403, 'Cannot demote the group leader');
+  }
+  if (!chat.groupAdmins.some((adminId) => adminId.toString() === userId)) {
+    throw new ApiError(400, 'User is not an admin of this group');
+  }
+
+  await Chat.findByIdAndUpdate(id, { $pull: { groupAdmins: userId } });
   res.status(204).send();
 });
 

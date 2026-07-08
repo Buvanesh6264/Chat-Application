@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Check, CheckCheck, MoreVertical, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth.js';
 import { getSocket } from '../../services/socket.js';
+import ReactionPicker from './ReactionPicker.jsx';
+import Avatar from '../common/Avatar.jsx';
 
 const EDIT_DELETE_WINDOW_MS = 15 * 60 * 1000;
-const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 const withinEditWindow = (message) =>
   Date.now() - new Date(message.createdAt).getTime() < EDIT_DELETE_WINDOW_MS;
@@ -17,8 +18,9 @@ const mediaPreviewText = (type) => {
   return '';
 };
 
-export default function MessageBubble({ message, chat, isOwn }) {
+export default function MessageBubble({ message, chat, isOwn, showAvatar = true }) {
   const { user } = useAuth();
+  const bubbleRef = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reactOpen, setReactOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -27,13 +29,12 @@ export default function MessageBubble({ message, chat, isOwn }) {
 
   const entranceClass = wasLive ? (isOwn ? 'animate-slide-in-right' : 'animate-slide-in-left') : '';
 
+  // Resolved client-side from the already-populated chat.participants rather than threading
+  // sender identity through serializeMessage on the backend (used consistently by many call sites).
+  const sender = !isOwn ? chat?.participants?.find((p) => p._id === message.senderId) : null;
   // Group chats can have more than one sender, so unlike 1:1 chats a bubble needs to say who sent
-  // it. Resolved client-side from the already-populated chat.participants rather than threading
-  // sender name through serializeMessage on the backend (used consistently by many call sites).
-  const senderName =
-    chat?.isGroup && !isOwn
-      ? chat.participants?.find((p) => p._id === message.senderId)?.name
-      : null;
+  // it; 1:1 chats already show the other user's name/avatar in the chat header.
+  const senderName = chat?.isGroup ? sender?.name : null;
 
   const deleted = Boolean(message.deletedAt);
   const canEditDelete = isOwn && !deleted && withinEditWindow(message);
@@ -58,7 +59,6 @@ export default function MessageBubble({ message, chat, isOwn }) {
     const socket = getSocket();
     socket?.emit('message:reaction', { messageId: message.id, emoji }, () => {});
     setReactOpen(false);
-    setMenuOpen(false);
   };
 
   const renderBody = () => {
@@ -111,112 +111,120 @@ export default function MessageBubble({ message, chat, isOwn }) {
   };
 
   return (
-    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} px-4 py-1 ${entranceClass}`}>
-      {senderName && <span className="mb-0.5 px-1 text-xs font-medium text-primary-600">{senderName}</span>}
-      <div
-        className={`group relative max-w-xs rounded-lg px-3 py-2 ${
-          isOwn ? 'bg-bubble-own text-white' : 'bg-bubble-other text-neutral-900 dark:text-neutral-50'
-        }`}
-      >
-        {editing ? (
-          <form onSubmit={handleEditSubmit} className="flex items-center gap-2">
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              className="rounded border border-neutral-200 bg-white px-2 py-1 text-sm text-ink dark:border-neutral-500/30 dark:bg-elevated"
-            />
-            <button type="submit" className="text-xs underline">
-              Save
-            </button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs opacity-70">
-              Cancel
-            </button>
-          </form>
-        ) : (
-          renderBody()
-        )}
-
-        <button
-          type="button"
-          onClick={() => setMenuOpen((v) => !v)}
-          className="icon-btn absolute -top-2 right-1 hidden rounded-full bg-white p-0.5 shadow group-hover:block dark:bg-elevated"
-          aria-label="Message actions"
+    <div className={`flex px-4 py-1 ${isOwn ? 'justify-end' : 'justify-start'} ${entranceClass}`}>
+      {/* Incoming: avatar on the left, following Telegram-style convention. Outgoing messages
+          never show an avatar, so this column only ever renders for !isOwn. The wrapper div is
+          always reserved at showAvatar=false too, so bubbles in a collapsed run still line up. */}
+      {!isOwn && (
+        <div className="mr-2 w-8 shrink-0 self-end">
+          {showAvatar && <Avatar src={sender?.profileImageUrl} name={sender?.name} size="sm" />}
+        </div>
+      )}
+      <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+        {senderName && <span className="mb-0.5 px-1 text-xs font-medium text-primary-600">{senderName}</span>}
+        <div
+          ref={bubbleRef}
+          className={`group relative max-w-xs rounded-lg px-3 py-2 ${
+            isOwn ? 'bg-bubble-own text-white' : 'bg-bubble-other text-neutral-900 dark:text-neutral-50'
+          }`}
         >
-          <MoreVertical className="h-4 w-4 text-neutral-500 dark:text-ink-muted" />
-        </button>
+          {editing ? (
+            <form onSubmit={handleEditSubmit} className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                className="rounded border border-neutral-200 bg-white px-2 py-1 text-sm text-ink dark:border-neutral-500/30 dark:bg-elevated"
+              />
+              <button type="submit" className="text-xs underline">
+                Save
+              </button>
+              <button type="button" onClick={() => setEditing(false)} className="text-xs opacity-70">
+                Cancel
+              </button>
+            </form>
+          ) : (
+            renderBody()
+          )}
 
-        {menuOpen && (
-          <div className="absolute top-4 right-1 z-10 w-32 rounded-md border border-neutral-200 bg-white py-1 text-sm text-ink shadow-lg dark:border-neutral-500/30 dark:bg-elevated">
-            {canEditDelete && (
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="icon-btn absolute -top-2 right-1 hidden rounded-full bg-white p-0.5 shadow group-hover:block dark:bg-elevated"
+            aria-label="Message actions"
+          >
+            <MoreVertical className="h-4 w-4 text-neutral-500 dark:text-ink-muted" />
+          </button>
+
+          {menuOpen && (
+            <div className="absolute top-4 right-1 z-10 w-32 rounded-md border border-neutral-200 bg-white py-1 text-sm text-ink shadow-lg dark:border-neutral-500/30 dark:bg-elevated">
+              {canEditDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(true);
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full px-3 py-1 text-left hover:bg-neutral-50 dark:hover:bg-surface"
+                >
+                  Edit
+                </button>
+              )}
+              {canEditDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="block w-full px-3 py-1 text-left text-danger hover:bg-neutral-50 dark:hover:bg-surface"
+                >
+                  Delete
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
-                  setEditing(true);
                   setMenuOpen(false);
+                  setReactOpen(true);
                 }}
                 className="block w-full px-3 py-1 text-left hover:bg-neutral-50 dark:hover:bg-surface"
               >
-                Edit
+                React
               </button>
-            )}
-            {canEditDelete && (
+            </div>
+          )}
+
+          {reactOpen && (
+            <ReactionPicker
+              anchorRef={bubbleRef}
+              onSelect={handleReact}
+              onClose={() => setReactOpen(false)}
+            />
+          )}
+        </div>
+
+        {message.reactions?.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {message.reactions.map((r) => (
               <button
+                key={`${r.userId}-${r.emoji}`}
                 type="button"
-                onClick={handleDelete}
-                className="block w-full px-3 py-1 text-left text-danger hover:bg-neutral-50 dark:hover:bg-surface"
+                onClick={() => handleReact(r.emoji)}
+                className={`rounded-full border px-1.5 py-0.5 text-xs text-ink ${
+                  r.userId === user.id
+                    ? 'border-primary-500 bg-accent-100 dark:bg-primary-500/20'
+                    : 'border-neutral-200 bg-neutral-50 dark:border-neutral-500/30 dark:bg-elevated'
+                }`}
               >
-                Delete
+                {r.emoji}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setReactOpen((v) => !v)}
-              className="block w-full px-3 py-1 text-left hover:bg-neutral-50 dark:hover:bg-surface"
-            >
-              React
-            </button>
-            {reactOpen && (
-              <div className="flex gap-1 px-2 py-1">
-                {QUICK_REACTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => handleReact(emoji)}
-                    className="text-lg hover:scale-125 transition-transform"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
         )}
-      </div>
 
-      {message.reactions?.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {message.reactions.map((r) => (
-            <button
-              key={`${r.userId}-${r.emoji}`}
-              type="button"
-              onClick={() => handleReact(r.emoji)}
-              className={`rounded-full border px-1.5 py-0.5 text-xs text-ink ${
-                r.userId === user.id
-                  ? 'border-primary-500 bg-accent-100 dark:bg-primary-500/20'
-                  : 'border-neutral-200 bg-neutral-50 dark:border-neutral-500/30 dark:bg-elevated'
-              }`}
-            >
-              {r.emoji}
-            </button>
-          ))}
+        <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500 dark:text-ink-muted">
+          <span>{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</span>
+          {message.editedAt && !deleted && <span>(edited)</span>}
+          {isOwn && !deleted && (isRead ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />)}
         </div>
-      )}
-
-      <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500 dark:text-ink-muted">
-        <span>{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</span>
-        {message.editedAt && !deleted && <span>(edited)</span>}
-        {isOwn && !deleted && (isRead ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />)}
       </div>
     </div>
   );

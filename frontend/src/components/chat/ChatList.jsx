@@ -38,6 +38,10 @@ export default function ChatList({ query = '' }) {
   const filtered = chats.filter((chat) => matchesQuery(chat, user.id, query));
   const pinned = filtered.filter((chat) => pinnedChatIds.has(String(chat.id)));
   const recent = filtered.filter((chat) => !pinnedChatIds.has(String(chat.id)));
+  // Pinned stays one combined section regardless of type (spec section 4 explicitly allows
+  // this option); only the unpinned remainder is split into Direct Messages vs Groups.
+  const directRecent = recent.filter((chat) => !chat.isGroup);
+  const groupRecent = recent.filter((chat) => chat.isGroup);
 
   if (filtered.length === 0) {
     return <div className="px-4 py-6 text-center text-sm text-ink-muted">No chats match "{query}"</div>;
@@ -54,17 +58,30 @@ export default function ChatList({ query = '' }) {
       </div>
     ));
 
+  const sectionHeaderClass = 'px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted';
+
   return (
     <div>
       {pinned.length > 0 && (
         <div className="border-b border-neutral-200">
-          <div className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
-            Pinned
-          </div>
+          <div className={sectionHeaderClass}>Pinned</div>
           <div className="divide-y divide-neutral-200">{renderGroup(pinned)}</div>
         </div>
       )}
-      <div className="divide-y divide-neutral-200">{renderGroup(recent, pinned.length)}</div>
+      {directRecent.length > 0 && (
+        <div className="border-b border-neutral-200">
+          <div className={sectionHeaderClass}>Direct Messages</div>
+          <div className="divide-y divide-neutral-200">{renderGroup(directRecent, pinned.length)}</div>
+        </div>
+      )}
+      {groupRecent.length > 0 && (
+        <div>
+          <div className={sectionHeaderClass}>Groups</div>
+          <div className="divide-y divide-neutral-200">
+            {renderGroup(groupRecent, pinned.length + directRecent.length)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

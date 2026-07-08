@@ -82,7 +82,11 @@ POST   /auth/refresh
 POST   /auth/logout
 
 GET    /users/search?phone=
-GET    /users/:id/profile        (per-field privacy gated; 404 only on an actual block, never on a restrictive enum)
+GET    /users/:id/profile        (per-field privacy gated; 404 only on an actual block, never on a restrictive enum;
+                                   response also includes `relationship`: 'self'|'friends'|'request_sent'|
+                                   'request_received'|'none', computed independently of the privacy-gated fields
+                                   above so a non-friend contact with a hidden profile still gets a working
+                                   friend-request button)
 PATCH  /users/me/privacy          { profileVisibility?, lastSeenVisibility?, onlineStatusVisibility?, readReceiptsEnabled? }
 PATCH  /users/me/profile          { name?, bio?, profileImageUrl? } -- self-profile edit; profileImageUrl is an
                                    objectKey already uploaded via POST /media/upload-url (category 'photo'), not a
@@ -98,17 +102,30 @@ POST   /friends/request           { to }
 POST   /friends/respond           { requestId, action: 'accept'|'reject' }
 POST   /friends/block             { userId }
 GET    /friends/requests          -- addition beyond the spec's high-level list: lists pending incoming requests
+GET    /friends/requests/sent     -- lists the caller's own pending outgoing requests (populated with recipient)
+DELETE /friends/requests/:requestId -- cancel an outgoing pending request; sender-only, 404 otherwise, deletes the doc
+DELETE /friends/:friendId         -- unfriend; two-sided $pull of friends[] plus cleanup of the 'accepted'
+                                   FriendRequest doc between the pair (without it, sendRequest's dedup check
+                                   would permanently block them from re-friending later)
 
 GET    /chats                     -- lists the caller's chats, sorted by updatedAt desc, participants + lastMessage populated
 POST   /chats/direct              { userId } -- addition: find-or-create a 1:1 chat; spec's REST list never specified how a chat is created
 POST   /chats/group               { groupName, participantIds } -- every participantIds entry must be in the
                                    caller's friends[] (services/privacy.js#isFriend), 403 otherwise; creator
                                    becomes groupAdmins[0], treated as "the leader" everywhere one is needed
-POST   /chats/:id/members         { userId } -- group only, leader-only (groupAdmins[0]), and the target must
-                                   be a friend of the leader specifically (not any participant's friend) —
-                                   403 on either failure, enforced here even if the UI never exposes the
-                                   control to a non-leader
+POST   /chats/:id/members         { userId } -- group only, leader-or-admin (any entry in groupAdmins), and
+                                   the target must be a friend of the *acting* admin specifically (not the
+                                   leader's or any other participant's friend) — 403 on either failure,
+                                   enforced here even if the UI never exposes the control to a non-admin
 DELETE /chats/:id/members/:userId -- group only, admin-only to remove others, self-removal (leave) always allowed
+PATCH  /chats/group/:id           { groupName?, groupAvatarUrl? } -- group only, leader-or-admin (any entry in
+                                   groupAdmins). groupAvatarUrl is a client-uploaded objectKey re-verified via
+                                   validateMediaUpload('photo', ...) before persisting, same discipline as
+                                   profile photos; response resolves it to a presigned GET URL, never the raw key
+POST   /chats/group/:id/admins/:userId   -- promote a participant to admin; leader-only (groupAdmins[0]);
+                                   $addToSet (append-only) so groupAdmins[0] never changes
+DELETE /chats/group/:id/admins/:userId   -- demote an admin; leader-only; rejects demoting groupAdmins[0] itself
+                                   (403) -- the one hard rule that must not regress
 GET    /chats/:id/messages?cursor=&limit=  -- cursor is the previous page's last message _id, descending
 PATCH  /chats/:id/pin             -- pin a chat for the caller only (User.pinnedChats), 404 if caller isn't a participant
 DELETE /chats/:id/pin             -- unpin; 404 if caller isn't a participant (same guard as pin), no-op

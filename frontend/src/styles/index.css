@@ -33,6 +33,15 @@
   --color-ink: #1F2937;
   --color-ink-muted: #6B7280;
 
+  /* List/chat/detail panel backgrounds — close in tone to surface/elevated above (not a clash
+     with the brand gradient) but distinguishable enough that list vs. chat vs. detail panes read
+     apart without needing a hard border. panel-chat matches today's surface value as the
+     baseline; panel-list is a hair cooler/lighter, panel-detail matches elevated ("raised" like
+     existing cards). */
+  --color-panel-list: #F5F5FC;
+  --color-panel-chat: #FAFAFF;
+  --color-panel-detail: #FFFFFF;
+
   --font-display: 'Sora', 'Poppins', sans-serif;
   --font-sans: 'Inter', sans-serif;
 
@@ -50,6 +59,10 @@
   --color-ink-muted: #9CA3AF;
   --color-bubble-own: #8B5CF6;
   --color-bubble-other: #332F55;
+
+  --color-panel-list: #201C3D;
+  --color-panel-chat: #1E1B3A;
+  --color-panel-detail: #24213F;
 }
 
 body {

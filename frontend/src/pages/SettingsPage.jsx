@@ -8,7 +8,7 @@ export default function SettingsPage() {
   const toggleTheme = useUiStore((s) => s.toggleTheme);
 
   return (
-    <div className="mx-auto flex max-w-2xl animate-fade-in-up flex-col gap-6 p-6">
+    <div className="mx-auto flex min-h-full max-w-2xl animate-fade-in-up flex-col gap-6 bg-panel-detail p-6">
       <div className="flex items-center gap-3">
         <Link to="/chats" aria-label="Back" className="icon-btn">
           <ArrowLeft className="h-5 w-5 text-ink" />
