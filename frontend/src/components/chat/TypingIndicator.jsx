@@ -13,13 +13,13 @@ export default function TypingIndicator({ chat, typingUserIds }) {
       : `${names.join(', ')} are typing…`;
 
   return (
-    <div className="flex animate-fade-in-up items-center px-4 py-1 text-xs text-neutral-500 italic">
+    <div className="flex shrink-0 animate-fade-in-up items-center px-4 py-1 text-xs text-neutral-500 italic dark:text-ink-muted">
       {text}
       <span className="ml-1 inline-flex gap-0.5">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="h-1 w-1 animate-bounce-dot rounded-full bg-neutral-500"
+            className="h-1 w-1 animate-bounce-dot rounded-full bg-neutral-500 dark:bg-ink-muted"
             style={{ animationDelay: `${i * 150}ms` }}
           />
         ))}

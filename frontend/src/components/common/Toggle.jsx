@@ -8,7 +8,7 @@ export default function Toggle({ checked, onChange, label, disabled }) {
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-150 disabled:opacity-50 ${
-        checked ? 'bg-gradient-primary' : 'bg-neutral-200'
+        checked ? 'bg-gradient-primary' : 'bg-neutral-200 dark:bg-neutral-500/30'
       }`}
     >
       <span

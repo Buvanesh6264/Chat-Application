@@ -95,6 +95,10 @@ export const createGroupChat = async (groupName, participantIds) => {
   return data.chat;
 };
 
+export const addChatMember = async (chatId, userId) => {
+  await api.post(`/chats/${chatId}/members`, { userId });
+};
+
 export const searchUsers = async (phone) => {
   const { data } = await api.get('/users/search', { params: { phone } });
   return data.users;
@@ -123,6 +127,11 @@ export const pinChat = async (chatId) => {
 export const unpinChat = async (chatId) => {
   const { data } = await api.delete(`/chats/${chatId}/pin`);
   return data.pinnedChats;
+};
+
+export const getFriends = async () => {
+  const { data } = await api.get('/friends');
+  return data.friends;
 };
 
 export const getFriendRequests = async () => {

@@ -65,13 +65,13 @@ export default function ChatRoomPage() {
 
   if (!chatLoaded) return null;
   if (!chat) {
-    return <div className="p-4 text-sm text-neutral-500">Chat not found</div>;
+    return <div className="p-4 text-sm text-neutral-500 dark:text-ink-muted">Chat not found</div>;
   }
 
   return (
-    <div className="flex h-full flex-col animate-slide-in-right lg:animate-none">
+    <div className="flex h-full min-h-0 flex-col animate-slide-in-right lg:animate-none">
       <ChatHeader chat={chat} />
-      <MessageList chatId={chatId} nextCursor={nextCursor} setNextCursor={setNextCursor} />
+      <MessageList chatId={chatId} chat={chat} nextCursor={nextCursor} setNextCursor={setNextCursor} />
       <TypingIndicator chat={chat} typingUserIds={typingUserIds} />
       <MessageComposer chatId={chatId} />
     </div>

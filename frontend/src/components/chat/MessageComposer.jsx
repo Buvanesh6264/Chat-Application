@@ -164,7 +164,7 @@ export default function MessageComposer({ chatId }) {
   };
 
   return (
-    <div className="border-t border-neutral-200 px-3 py-2">
+    <div className="shrink-0 border-t border-neutral-200 px-3 py-2 dark:border-neutral-500/30">
       {error && <div className="mb-1 text-xs text-danger">{error}</div>}
 
       {recording ? (
@@ -183,28 +183,28 @@ export default function MessageComposer({ chatId }) {
               aria-label="Attach"
               className="icon-btn"
             >
-              <Paperclip className="h-5 w-5 text-neutral-500" />
+              <Paperclip className="h-5 w-5 text-neutral-500 dark:text-ink-muted" />
             </button>
             {showAttach && (
-              <div className="absolute bottom-8 left-0 z-10 w-40 rounded-md border border-neutral-200 bg-white py-1 shadow-lg">
+              <div className="absolute bottom-8 left-0 z-10 w-40 rounded-md border border-neutral-200 bg-white py-1 text-ink shadow-lg dark:border-neutral-500/30 dark:bg-elevated">
                 <button
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-surface"
                 >
                   <ImageIcon className="h-4 w-4" /> Photo
                 </button>
                 <button
                   type="button"
                   onClick={() => pdfInputRef.current?.click()}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-surface"
                 >
                   <FileText className="h-4 w-4" /> PDF
                 </button>
                 <button
                   type="button"
                   onClick={startRecording}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-surface"
                 >
                   <Mic className="h-4 w-4" /> Voice
                 </button>
@@ -228,7 +228,7 @@ export default function MessageComposer({ chatId }) {
 
           <div className="relative">
             <button type="button" onClick={() => setShowEmoji((v) => !v)} aria-label="Emoji" className="icon-btn">
-              <Smile className="h-5 w-5 text-neutral-500" />
+              <Smile className="h-5 w-5 text-neutral-500 dark:text-ink-muted" />
             </button>
             {showEmoji && (
               <div className="absolute bottom-8 left-0 z-10">
@@ -241,7 +241,7 @@ export default function MessageComposer({ chatId }) {
             value={text}
             onChange={handleTextChange}
             placeholder="Type a message"
-            className="flex-1 rounded-full border border-neutral-200 px-4 py-2 text-sm focus:outline-none"
+            className="flex-1 rounded-full border border-neutral-200 px-4 py-2 text-sm text-ink focus:outline-none dark:border-neutral-500/30"
           />
 
           <button type="submit" disabled={!text.trim() || sending} aria-label="Send" className="icon-btn">

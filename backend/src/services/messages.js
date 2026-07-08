@@ -8,12 +8,37 @@ import { validateMediaUpload } from './mediaValidation.js';
 import { MEDIA_MESSAGE_TYPES } from '../utils/mediaTypes.js';
 import { transcribeVoiceMessage } from './transcription.js';
 import { invalidateTranslations } from './translationCache.js';
+import { emitToUser } from './realtime.js';
 
 const EDIT_DELETE_WINDOW_MS = 15 * 60 * 1000;
 const TEXT_MESSAGE_TYPES = ['text', 'emoji'];
 const ALL_MESSAGE_TYPES = [...TEXT_MESSAGE_TYPES, ...MEDIA_MESSAGE_TYPES];
 
 const withinEditWindow = (message) => Date.now() - message.createdAt.getTime() <= EDIT_DELETE_WINDOW_MS;
+
+// Bumps every participant-but-the-sender's per-chat unread counter and pushes the new value live.
+// Two-step $inc/$push rather than a single upsert-style query — Mongo has no atomic
+// "increment or insert this array element" operator, and this only runs once per participant per
+// send (bounded by chat size), so the extra round trip is negligible.
+const incrementUnreadCounts = async (chatId, participants, senderId) => {
+  const recipientIds = participants.filter((id) => id.toString() !== senderId.toString());
+
+  for (const recipientId of recipientIds) {
+    const result = await Chat.updateOne(
+      { _id: chatId, 'unreadCounts.userId': recipientId },
+      { $inc: { 'unreadCounts.$.count': 1 } }
+    );
+    if (result.matchedCount === 0) {
+      await Chat.updateOne({ _id: chatId }, { $push: { unreadCounts: { userId: recipientId, count: 1 } } });
+    }
+  }
+
+  const updated = await Chat.findById(chatId).select('unreadCounts');
+  for (const recipientId of recipientIds) {
+    const entry = updated.unreadCounts.find((u) => u.userId.toString() === recipientId.toString());
+    emitToUser(recipientId, 'chat:unreadUpdate', { chatId, count: entry?.count ?? 0 });
+  }
+};
 
 // Re-validates required-by-type fields here (not just at the REST express-validator layer),
 // since socket payloads have no middleware validation in front of them.
@@ -60,6 +85,7 @@ export const sendMessage = async ({ senderId, chatId, type, content, objectKey, 
 
   const message = await Message.create(messageData);
   await Chat.findByIdAndUpdate(chatId, { lastMessage: message._id });
+  await incrementUnreadCounts(chatId, chat.participants, senderId);
 
   if (type === 'voice') {
     // Fire-and-forget — a slow/failed Groq call must never block or fail the send itself.

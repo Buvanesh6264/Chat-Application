@@ -44,7 +44,7 @@ export default function Modal({ id, title, children }) {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-medium text-ink">{title}</h2>
             <button type="button" onClick={close} aria-label="Close" className="icon-btn">
-              <X className="h-5 w-5 text-neutral-500" />
+              <X className="h-5 w-5 text-neutral-500 dark:text-ink-muted" />
             </button>
           </div>
         )}

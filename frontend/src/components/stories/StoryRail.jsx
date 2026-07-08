@@ -52,7 +52,7 @@ export default function StoryRail() {
   const otherUserIds = Object.keys(storiesByUserId).filter((userId) => userId !== user.id);
 
   return (
-    <div className="flex gap-4 overflow-x-auto border-b border-neutral-200 bg-white px-4 py-3">
+    <div className="flex gap-4 overflow-x-auto border-b border-neutral-200 bg-white px-4 py-3 dark:border-neutral-500/30 dark:bg-elevated">
       <div className="flex flex-col items-center gap-1">
         <div className="relative">
           <Avatar
@@ -69,12 +69,12 @@ export default function StoryRail() {
             type="button"
             onClick={() => useUiStore.getState().openModal('storyComposer')}
             aria-label="Add story"
-            className="icon-btn absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-500 text-white ring-2 ring-white"
+            className="icon-btn absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary-500 text-white ring-2 ring-white dark:ring-elevated"
           >
             <Plus className="h-3 w-3" />
           </button>
         </div>
-        <span className="max-w-16 truncate text-xs text-neutral-500">Your story</span>
+        <span className="max-w-16 truncate text-xs text-neutral-500 dark:text-ink-muted">Your story</span>
       </div>
 
       {otherUserIds.map((userId, i) => {
@@ -93,7 +93,7 @@ export default function StoryRail() {
               hasUnviewedStory={hasUnviewed}
               onClick={() => setViewingUserId(userId)}
             />
-            <span className="max-w-16 truncate text-xs text-neutral-900">
+            <span className="max-w-16 truncate text-xs text-ink">
               {profile?.name || 'Story'}
             </span>
           </div>

@@ -7,7 +7,7 @@ import MessageBubble from './MessageBubble.jsx';
 const NEAR_BOTTOM_THRESHOLD = 100;
 const NEAR_TOP_THRESHOLD = 100;
 
-export default function MessageList({ chatId, nextCursor, setNextCursor }) {
+export default function MessageList({ chatId, chat, nextCursor, setNextCursor }) {
   const { user } = useAuth();
   const messages = useChatStore((s) => s.messagesByChatId[chatId]);
   const containerRef = useRef(null);
@@ -69,14 +69,14 @@ export default function MessageList({ chatId, nextCursor, setNextCursor }) {
   };
 
   if (!messages) {
-    return <div className="flex-1" />;
+    return <div className="min-h-0 flex-1" />;
   }
 
   return (
-    <div ref={containerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-2">
-      {loadingMore && <div className="py-2 text-center text-xs text-neutral-500">Loading…</div>}
+    <div ref={containerRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto py-2">
+      {loadingMore && <div className="py-2 text-center text-xs text-neutral-500 dark:text-ink-muted">Loading…</div>}
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} isOwn={message.senderId === user.id} />
+        <MessageBubble key={message.id} message={message} chat={chat} isOwn={message.senderId === user.id} />
       ))}
     </div>
   );

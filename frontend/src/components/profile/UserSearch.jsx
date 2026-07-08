@@ -58,15 +58,15 @@ export default function UserSearch() {
   };
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-6">
-      <h3 className="mb-4 text-base font-semibold text-neutral-900">Find people</h3>
+    <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-500/30 dark:bg-elevated">
+      <h3 className="mb-4 text-base font-semibold text-ink">Find people</h3>
 
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search by phone number"
-        className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+        className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm text-ink dark:border-neutral-500/30"
       />
 
       {loading && (
@@ -86,8 +86,8 @@ export default function UserSearch() {
             >
               <Avatar size="md" src={result.profileImageUrl} name={result.name} />
               <div className="flex-1">
-                <p className="text-sm font-medium text-neutral-900">{result.name}</p>
-                <p className="text-xs text-neutral-500">{result.phoneNumber}</p>
+                <p className="text-sm font-medium text-ink">{result.name}</p>
+                <p className="text-xs text-ink-muted">{result.phoneNumber}</p>
                 {state.status === 'error' && (
                   <p className="text-xs text-danger">{state.message}</p>
                 )}

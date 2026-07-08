@@ -75,7 +75,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="icon-btn absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500"
+                  className="icon-btn absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-ink-muted"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

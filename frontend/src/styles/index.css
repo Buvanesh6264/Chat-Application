@@ -35,6 +35,12 @@
 
   --font-display: 'Sora', 'Poppins', sans-serif;
   --font-sans: 'Inter', sans-serif;
+
+  /* Message bubble colors — solid/saturated by design (not a pale tint) so own vs. other read as
+     immediately distinct; text color is chosen per-bubble explicitly in MessageBubble.jsx rather
+     than inherited from --color-ink, since own-bubble text stays white in both themes. */
+  --color-bubble-own: #6D28D9;
+  --color-bubble-other: #E5E7EB;
 }
 
 .dark {
@@ -42,6 +48,8 @@
   --color-elevated: #24213F;
   --color-ink: #F3F4F6;
   --color-ink-muted: #9CA3AF;
+  --color-bubble-own: #8B5CF6;
+  --color-bubble-other: #332F55;
 }
 
 body {

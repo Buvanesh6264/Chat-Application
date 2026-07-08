@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { getFriendRequests, respondFriendRequest } from '../../services/api.js';
+import { useFriendStore } from '../../store/friendStore.js';
 import Avatar from '../common/Avatar.jsx';
 import Button from '../common/Button.jsx';
 import Spinner from '../common/Spinner.jsx';
@@ -40,6 +41,7 @@ export default function FriendRequestsPanel() {
     setResponding({ id: requestId, action });
     try {
       await respondFriendRequest(requestId, action);
+      useFriendStore.getState().decrementPendingRequestCount();
       setRemovingIds((prev) => new Set(prev).add(requestId));
       setTimeout(() => {
         setRequests((prev) => prev.filter((r) => r._id !== requestId));
@@ -57,13 +59,13 @@ export default function FriendRequestsPanel() {
   };
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-6">
-      <h3 className="mb-4 text-base font-semibold text-neutral-900">Friend requests</h3>
+    <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-500/30 dark:bg-elevated">
+      <h3 className="mb-4 text-base font-semibold text-ink">Friend requests</h3>
 
       {loading && <Spinner size="sm" />}
 
       {!loading && requests.length === 0 && (
-        <p className="text-sm text-neutral-500">No pending requests</p>
+        <p className="text-sm text-ink-muted">No pending requests</p>
       )}
 
       <ul className="flex flex-col gap-3">
@@ -87,8 +89,8 @@ export default function FriendRequestsPanel() {
               name={request.from?.name}
             />
             <div className="flex-1">
-              <p className="text-sm font-medium text-neutral-900">{request.from?.name}</p>
-              <p className="text-xs text-neutral-500">{request.from?.phoneNumber}</p>
+              <p className="text-sm font-medium text-ink">{request.from?.name}</p>
+              <p className="text-xs text-ink-muted">{request.from?.phoneNumber}</p>
             </div>
             <Button
               size="sm"

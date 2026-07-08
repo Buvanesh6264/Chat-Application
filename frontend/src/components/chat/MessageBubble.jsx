@@ -17,7 +17,7 @@ const mediaPreviewText = (type) => {
   return '';
 };
 
-export default function MessageBubble({ message, isOwn }) {
+export default function MessageBubble({ message, chat, isOwn }) {
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [reactOpen, setReactOpen] = useState(false);
@@ -26,6 +26,14 @@ export default function MessageBubble({ message, isOwn }) {
   const [wasLive] = useState(() => message.__live);
 
   const entranceClass = wasLive ? (isOwn ? 'animate-slide-in-right' : 'animate-slide-in-left') : '';
+
+  // Group chats can have more than one sender, so unlike 1:1 chats a bubble needs to say who sent
+  // it. Resolved client-side from the already-populated chat.participants rather than threading
+  // sender name through serializeMessage on the backend (used consistently by many call sites).
+  const senderName =
+    chat?.isGroup && !isOwn
+      ? chat.participants?.find((p) => p._id === message.senderId)?.name
+      : null;
 
   const deleted = Boolean(message.deletedAt);
   const canEditDelete = isOwn && !deleted && withinEditWindow(message);
@@ -55,7 +63,9 @@ export default function MessageBubble({ message, isOwn }) {
 
   const renderBody = () => {
     if (deleted) {
-      return <span className="italic text-neutral-500">This message was deleted</span>;
+      // opacity, not a fixed color — inherits whichever text color the bubble (own/other, light/
+      // dark) already set, just dimmed, so it stays legible against a solid violet own-bubble too.
+      return <span className="italic opacity-70">This message was deleted</span>;
     }
 
     if (message.type === 'photo') {
@@ -77,9 +87,9 @@ export default function MessageBubble({ message, isOwn }) {
         <div className="space-y-1">
           <audio controls src={message.mediaUrl} className="max-w-56" />
           {message.mediaMeta?.durationSeconds != null && (
-            <div className="text-xs text-neutral-500">{message.mediaMeta.durationSeconds}s</div>
+            <div className="text-xs opacity-70">{message.mediaMeta.durationSeconds}s</div>
           )}
-          {message.transcript && <p className="text-sm text-neutral-900">{message.transcript}</p>}
+          {message.transcript && <p className="text-sm">{message.transcript}</p>}
         </div>
       );
     }
@@ -102,19 +112,24 @@ export default function MessageBubble({ message, isOwn }) {
 
   return (
     <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} px-4 py-1 ${entranceClass}`}>
-      <div className={`group relative max-w-xs rounded-lg px-3 py-2 ${isOwn ? 'bg-accent-100' : 'bg-neutral-50'}`}>
+      {senderName && <span className="mb-0.5 px-1 text-xs font-medium text-primary-600">{senderName}</span>}
+      <div
+        className={`group relative max-w-xs rounded-lg px-3 py-2 ${
+          isOwn ? 'bg-bubble-own text-white' : 'bg-bubble-other text-neutral-900 dark:text-neutral-50'
+        }`}
+      >
         {editing ? (
           <form onSubmit={handleEditSubmit} className="flex items-center gap-2">
             <input
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              className="rounded border border-neutral-200 px-2 py-1 text-sm"
+              className="rounded border border-neutral-200 bg-white px-2 py-1 text-sm text-ink dark:border-neutral-500/30 dark:bg-elevated"
             />
-            <button type="submit" className="text-xs text-primary-600">
+            <button type="submit" className="text-xs underline">
               Save
             </button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs text-neutral-500">
+            <button type="button" onClick={() => setEditing(false)} className="text-xs opacity-70">
               Cancel
             </button>
           </form>
@@ -125,14 +140,14 @@ export default function MessageBubble({ message, isOwn }) {
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          className="icon-btn absolute -top-2 right-1 hidden rounded-full bg-white p-0.5 shadow group-hover:block"
+          className="icon-btn absolute -top-2 right-1 hidden rounded-full bg-white p-0.5 shadow group-hover:block dark:bg-elevated"
           aria-label="Message actions"
         >
-          <MoreVertical className="h-4 w-4 text-neutral-500" />
+          <MoreVertical className="h-4 w-4 text-neutral-500 dark:text-ink-muted" />
         </button>
 
         {menuOpen && (
-          <div className="absolute top-4 right-1 z-10 w-32 rounded-md border border-neutral-200 bg-white py-1 text-sm shadow-lg">
+          <div className="absolute top-4 right-1 z-10 w-32 rounded-md border border-neutral-200 bg-white py-1 text-sm text-ink shadow-lg dark:border-neutral-500/30 dark:bg-elevated">
             {canEditDelete && (
               <button
                 type="button"
@@ -140,7 +155,7 @@ export default function MessageBubble({ message, isOwn }) {
                   setEditing(true);
                   setMenuOpen(false);
                 }}
-                className="block w-full px-3 py-1 text-left hover:bg-neutral-50"
+                className="block w-full px-3 py-1 text-left hover:bg-neutral-50 dark:hover:bg-surface"
               >
                 Edit
               </button>
@@ -149,7 +164,7 @@ export default function MessageBubble({ message, isOwn }) {
               <button
                 type="button"
                 onClick={handleDelete}
-                className="block w-full px-3 py-1 text-left text-danger hover:bg-neutral-50"
+                className="block w-full px-3 py-1 text-left text-danger hover:bg-neutral-50 dark:hover:bg-surface"
               >
                 Delete
               </button>
@@ -157,7 +172,7 @@ export default function MessageBubble({ message, isOwn }) {
             <button
               type="button"
               onClick={() => setReactOpen((v) => !v)}
-              className="block w-full px-3 py-1 text-left hover:bg-neutral-50"
+              className="block w-full px-3 py-1 text-left hover:bg-neutral-50 dark:hover:bg-surface"
             >
               React
             </button>
@@ -186,8 +201,10 @@ export default function MessageBubble({ message, isOwn }) {
               key={`${r.userId}-${r.emoji}`}
               type="button"
               onClick={() => handleReact(r.emoji)}
-              className={`rounded-full border px-1.5 py-0.5 text-xs ${
-                r.userId === user.id ? 'border-primary-500 bg-accent-100' : 'border-neutral-200 bg-neutral-50'
+              className={`rounded-full border px-1.5 py-0.5 text-xs text-ink ${
+                r.userId === user.id
+                  ? 'border-primary-500 bg-accent-100 dark:bg-primary-500/20'
+                  : 'border-neutral-200 bg-neutral-50 dark:border-neutral-500/30 dark:bg-elevated'
               }`}
             >
               {r.emoji}
@@ -196,7 +213,7 @@ export default function MessageBubble({ message, isOwn }) {
         </div>
       )}
 
-      <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
+      <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500 dark:text-ink-muted">
         <span>{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</span>
         {message.editedAt && !deleted && <span>(edited)</span>}
         {isOwn && !deleted && (isRead ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />)}

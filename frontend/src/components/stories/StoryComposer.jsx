@@ -68,7 +68,7 @@ export default function StoryComposer() {
           type="file"
           accept="image/*"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="text-sm text-neutral-900"
+          className="text-sm text-ink"
         />
 
         {previewUrl && (
@@ -84,7 +84,7 @@ export default function StoryComposer() {
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Add a caption (optional)"
-          className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+          className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-ink dark:border-neutral-500/30"
         />
 
         <div className="flex justify-end gap-2">

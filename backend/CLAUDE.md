@@ -43,8 +43,11 @@ Chat {
   _id, participants: [ObjectId ref User], isGroup: Boolean (default false),
   groupName: String,               // group chats only
   groupAvatarUrl: String,           // group chats only
-  groupAdmins: [ObjectId ref User], // group chats only, subset of participants
+  groupAdmins: [ObjectId ref User], // group chats only, subset of participants; groupAdmins[0] is
+                                    // treated as "the leader" everywhere group rules mention one
+                                    // (creation/add-member validation) — no separate leaderId field
   lastMessage: ObjectId ref Message,
+  unreadCounts: [{ userId: ObjectId ref User, count: Number }], // per-participant unread counter
   createdAt, updatedAt
 }
 
@@ -89,6 +92,8 @@ PATCH  /users/me/profile          { name?, bio?, profileImageUrl? } -- self-prof
                                    signup's toPublicUser) is a freshly resolved presigned GET URL, not the raw
                                    objectKey — the bucket is private, so the stored value alone isn't fetchable.
 
+GET    /friends                   -- lists the caller's accepted friends (name, phone, photo, privacy-gated
+                                   isOnline/lastSeenAt per canViewField, same rules as GET /users/:id/profile)
 POST   /friends/request           { to }
 POST   /friends/respond           { requestId, action: 'accept'|'reject' }
 POST   /friends/block             { userId }
@@ -96,12 +101,18 @@ GET    /friends/requests          -- addition beyond the spec's high-level list:
 
 GET    /chats                     -- lists the caller's chats, sorted by updatedAt desc, participants + lastMessage populated
 POST   /chats/direct              { userId } -- addition: find-or-create a 1:1 chat; spec's REST list never specified how a chat is created
-POST   /chats/group               { groupName, participantIds }
-POST   /chats/:id/members         { userId } -- group only, admin-only
+POST   /chats/group               { groupName, participantIds } -- every participantIds entry must be in the
+                                   caller's friends[] (services/privacy.js#isFriend), 403 otherwise; creator
+                                   becomes groupAdmins[0], treated as "the leader" everywhere one is needed
+POST   /chats/:id/members         { userId } -- group only, leader-only (groupAdmins[0]), and the target must
+                                   be a friend of the leader specifically (not any participant's friend) —
+                                   403 on either failure, enforced here even if the UI never exposes the
+                                   control to a non-leader
 DELETE /chats/:id/members/:userId -- group only, admin-only to remove others, self-removal (leave) always allowed
 GET    /chats/:id/messages?cursor=&limit=  -- cursor is the previous page's last message _id, descending
 PATCH  /chats/:id/pin             -- pin a chat for the caller only (User.pinnedChats), 404 if caller isn't a participant
-DELETE /chats/:id/pin             -- unpin; no-op (not an error) if it wasn't pinned
+DELETE /chats/:id/pin             -- unpin; 404 if caller isn't a participant (same guard as pin), no-op
+                                   (not an error) if it wasn't pinned
 
 POST   /messages                  { chatId, type: 'text'|'emoji', content }
                                    { chatId, type: 'photo'|'voice'|'pdf', objectKey, content? (caption), durationSeconds? (voice) }
@@ -181,6 +192,22 @@ story:new         (viewer-neutral story payload) -> pushed to the poster's frien
                   on every story creation. No per-field privacy branching needed (unlike presence) — friends[]
                   already is the exact visibility set for stories. Emitted from services/stories.js via the
                   same realtime.js bus, not from a dedicated socket handler file.
+
+friend:request:new   ({ request } with `from` populated name/phoneNumber/profileImageUrl) -> pushed to the
+                  recipient the moment POST /friends/request creates the doc, via services/realtime.js#emitToUser
+                  (friends.controller.js#sendRequest is a REST-only controller, not a socket handler — this is
+                  the one place realtime.js is called directly from a controller rather than a service). Payload
+                  shape matches GET /friends/requests exactly so a live push and a subsequent refetch render
+                  identically.
+
+chat:unreadUpdate    ({ chatId, count }) -> pushed to a single user (never broadcast to all participants)
+                  on two occasions: (1) services/messages.js#sendMessage increments Chat.unreadCounts for
+                  every recipient-but-the-sender on every send (REST and socket alike, since both paths call
+                  this one function) and pushes each recipient their own new count; (2) message.handlers.js's
+                  message:read resets the caller's own counter to 0 and pushes `{ count: 0 }` back to
+                  themselves (for their other open tabs/devices) — this reset runs before the
+                  readReceiptsEnabled early-return, since clearing your own badge is unrelated to whether you
+                  broadcast read receipts to others.
 ```
 
 **Known gap, decided consciously, not fixed**: the mutual `readReceiptsEnabled` suppression rule ("if a user disables it, they also stop seeing others' receipts") is enforced on the `message:read` socket broadcast, but **not** on `GET /chats/:id/messages` — `serializeMessage` returns `readBy` verbatim regardless of the requesting viewer's own toggle, because it has no notion of "who's asking." A receipts-disabled user can still see others' read status by polling REST. The spec explicitly scopes this enforcement to "the socket handler, not the frontend," which covers the real-time path; closing the REST gap would mean threading viewer identity into `serializeMessage` everywhere it's called (`messages.controller.js`, `chats.controller.js`) — a larger change than this pass warrants. Worth fixing if/when the REST message-list becomes the primary read path (e.g. an offline-first frontend that polls instead of relying on live socket events).

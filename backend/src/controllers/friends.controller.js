@@ -2,6 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/User.js';
 import { FriendRequest } from '../models/FriendRequest.js';
+import { canViewField } from '../services/privacy.js';
+import { emitToUser } from '../services/realtime.js';
 
 const areBlocked = (a, b) =>
   a.blockedUsers.some((id) => id.equals(b._id)) || b.blockedUsers.some((id) => id.equals(a._id));
@@ -34,7 +36,10 @@ export const sendRequest = asyncHandler(async (req, res) => {
     throw new ApiError(409, 'A friend request already exists between these users');
   }
 
-  const request = await FriendRequest.create({ from: me._id, to: target._id, status: 'pending' });
+  let request = await FriendRequest.create({ from: me._id, to: target._id, status: 'pending' });
+  request = await request.populate('from', 'name phoneNumber profileImageUrl');
+  emitToUser(target._id, 'friend:request:new', { request });
+
   res.status(201).json({ request });
 });
 
@@ -96,6 +101,24 @@ export const blockUser = asyncHandler(async (req, res) => {
   }
 
   res.status(204).send();
+});
+
+export const listFriends = asyncHandler(async (req, res) => {
+  const me = await User.findById(req.user.id).populate(
+    'friends',
+    'name phoneNumber profileImageUrl privacySettings isOnline lastSeenAt blockedUsers'
+  );
+
+  const friends = me.friends.map((friend) => ({
+    id: friend._id,
+    name: friend.name,
+    phoneNumber: friend.phoneNumber,
+    profileImageUrl: friend.profileImageUrl,
+    isOnline: canViewField(me, friend, 'onlineStatus') ? friend.isOnline : null,
+    lastSeenAt: canViewField(me, friend, 'lastSeen') ? friend.lastSeenAt : null,
+  }));
+
+  res.json({ friends });
 });
 
 export const listPendingRequests = asyncHandler(async (req, res) => {

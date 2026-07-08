@@ -18,7 +18,7 @@ const mediaPreview = (message) => {
 
 export default function ChatListItem({ chat, isPinned }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const otherParticipant = chat.isGroup
@@ -31,10 +31,7 @@ export default function ChatListItem({ chat, isPinned }) {
     otherParticipant ? s.presenceByUserId[otherParticipant._id] : undefined
   );
 
-  const unread =
-    chat.lastMessage &&
-    chat.lastMessage.senderId !== user.id &&
-    !chat.lastMessage.readBy?.some((r) => r.userId === user.id);
+  const unreadCount = chat.unreadCount ?? 0;
 
   const isOwnLastMessage = chat.lastMessage && chat.lastMessage.senderId === user.id;
   const readByOther = chat.lastMessage?.readBy?.some((r) => r.userId !== user.id);
@@ -44,13 +41,18 @@ export default function ChatListItem({ chat, isPinned }) {
     setMenuOpen(false);
     const { addPinnedChatId, removePinnedChatId } = useChatStore.getState();
     try {
+      let pinnedChats;
       if (isPinned) {
         removePinnedChatId(chat.id);
-        await unpinChat(chat.id);
+        pinnedChats = await unpinChat(chat.id);
       } else {
         addPinnedChatId(chat.id);
-        await pinChat(chat.id);
+        pinnedChats = await pinChat(chat.id);
       }
+      // Persist into the cached user object too — the store's pinnedChatIds Set is ephemeral and
+      // gets re-seeded from user.pinnedChats on every ChatLayout mount (including page reload), so
+      // without this the pin/unpin silently reverts on the next reload.
+      updateUser({ pinnedChats });
     } catch {
       // revert the optimistic update on failure
       if (isPinned) addPinnedChatId(chat.id);
@@ -61,7 +63,7 @@ export default function ChatListItem({ chat, isPinned }) {
 
   return (
     <div
-      className="group relative flex w-full items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-neutral-50"
+      className="group relative flex w-full items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-elevated"
       onContextMenu={(e) => {
         e.preventDefault();
         setMenuOpen(true);
@@ -98,7 +100,11 @@ export default function ChatListItem({ chat, isPinned }) {
                 ))}
               <span className="truncate">{chat.lastMessage ? mediaPreview(chat.lastMessage) : ''}</span>
             </span>
-            {unread && <span className="ml-2 h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-gradient-primary" />}
+            {unreadCount > 0 && (
+              <span className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gradient-primary px-1.5 text-xs font-semibold text-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </div>
         </div>
       </button>
@@ -110,7 +116,7 @@ export default function ChatListItem({ chat, isPinned }) {
           setMenuOpen((prev) => !prev);
         }}
         aria-label="Chat options"
-        className="icon-btn shrink-0 rounded-full p-1 text-ink-muted opacity-60 hover:bg-neutral-200 hover:opacity-100"
+        className="icon-btn shrink-0 rounded-full p-1 text-ink-muted opacity-60 hover:bg-neutral-200 hover:opacity-100 dark:hover:bg-elevated"
       >
         <MoreVertical className="h-4 w-4" />
       </button>

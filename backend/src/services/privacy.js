@@ -11,7 +11,7 @@ const PRIVACY_SETTING_BY_FIELD = {
 export const isBlockedPair = (a, b) =>
   a.blockedUsers.some((id) => id.equals(b._id)) || b.blockedUsers.some((id) => id.equals(a._id));
 
-const isFriend = (owner, viewerId) => owner.friends.some((id) => id.equals(viewerId));
+export const isFriend = (owner, viewerId) => owner.friends.some((id) => id.equals(viewerId));
 
 // Field-level check against already-fetched documents — use this when checking multiple fields
 // for the same viewer/owner pair (e.g. a profile read) to avoid re-fetching per field.

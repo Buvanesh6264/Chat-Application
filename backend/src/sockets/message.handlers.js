@@ -1,9 +1,11 @@
 import { ApiError } from '../utils/ApiError.js';
 import { Message } from '../models/Message.js';
 import { User } from '../models/User.js';
+import { Chat } from '../models/Chat.js';
 import { serializeMessage } from '../utils/serializeMessage.js';
 import { getParticipantChat } from '../services/chats.js';
 import { sendMessage, editMessageContent, softDeleteMessage } from '../services/messages.js';
+import { emitToUser } from '../services/realtime.js';
 
 // Room-scoped only — never io.emit() to everyone. Rooms are per-user (`user:${id}`), not
 // per-chat, so a brand-new chat's participants are already reachable without a room-join step.
@@ -88,6 +90,14 @@ export const registerMessageHandlers = (io, socket) => {
         throw new ApiError(400, 'chatId is required');
       }
       const chat = await getParticipantChat(chatId, userId);
+
+      // Clearing your own unread badge is orthogonal to whether you broadcast read receipts to
+      // others — must happen even when readReceiptsEnabled is off, so this runs before that check.
+      await Chat.updateOne(
+        { _id: chatId, 'unreadCounts.userId': userId },
+        { $set: { 'unreadCounts.$.count': 0 } }
+      );
+      emitToUser(userId, 'chat:unreadUpdate', { chatId, count: 0 });
 
       const reader = await User.findById(userId).select('readReceiptsEnabled');
       if (!reader.readReceiptsEnabled) {

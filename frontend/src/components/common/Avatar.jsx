@@ -74,7 +74,7 @@ export default function Avatar({ src, name, size = 'md', online, hasUnviewedStor
           />
         ) : (
           <span
-            className={`${sizeClasses} flex items-center justify-center rounded-full bg-neutral-200 font-medium text-neutral-900`}
+            className={`${sizeClasses} flex items-center justify-center rounded-full bg-neutral-200 font-medium text-neutral-900 dark:bg-neutral-500/30 dark:text-ink`}
           >
             {getInitials(name)}
           </span>

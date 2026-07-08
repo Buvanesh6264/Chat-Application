@@ -29,6 +29,13 @@ export const useChatStore = create((set) => ({
       return { pinnedChatIds: next };
     }),
 
+  // Merges a live chat:unreadUpdate push onto the matching chat — same "find by id, patch one
+  // field" shape as upsertChatOnMessage's lastMessage patch, just without reordering the list.
+  setUnreadCount: (chatId, count) =>
+    set((state) => ({
+      chats: state.chats.map((c) => (c.id === chatId ? { ...c, unreadCount: count } : c)),
+    })),
+
   // Reorders the chat list on a new message: bump the matching chat to the front with its
   // lastMessage/updatedAt updated. Leaves state untouched if the chat isn't loaded yet — that
   // case is refreshed via a GET /chats call in the page, not invented here.

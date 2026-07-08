@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useChatStore } from '../store/chatStore.js';
 import { useStoryStore } from '../store/storyStore.js';
+import { useFriendStore } from '../store/friendStore.js';
 
 const TYPING_AUTO_CLEAR_MS = 5000;
 
@@ -51,6 +52,14 @@ export const useSocketListeners = (socket) => {
       useStoryStore.getState().addStory(story);
     };
 
+    const handleFriendRequestNew = () => {
+      useFriendStore.getState().incrementPendingRequestCount();
+    };
+
+    const handleChatUnreadUpdate = ({ chatId, count }) => {
+      useChatStore.getState().setUnreadCount(chatId, count);
+    };
+
     socket.on('message:receive', handleMessageReceive);
     socket.on('message:edit', handleMessageReplace);
     socket.on('message:delete', handleMessageReplace);
@@ -60,6 +69,8 @@ export const useSocketListeners = (socket) => {
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
     socket.on('story:new', handleStoryNew);
+    socket.on('friend:request:new', handleFriendRequestNew);
+    socket.on('chat:unreadUpdate', handleChatUnreadUpdate);
 
     return () => {
       socket.off('message:receive', handleMessageReceive);
@@ -71,6 +82,8 @@ export const useSocketListeners = (socket) => {
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
       socket.off('story:new', handleStoryNew);
+      socket.off('friend:request:new', handleFriendRequestNew);
+      socket.off('chat:unreadUpdate', handleChatUnreadUpdate);
 
       for (const timeoutId of typingTimeouts.current.values()) clearTimeout(timeoutId);
       typingTimeouts.current.clear();
